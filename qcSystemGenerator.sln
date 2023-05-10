@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33516.290
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qcSystemGenerator", "qcSystemGenerator.vcxproj", "{32B19F9E-3C1C-4BB6-AC26-36A897F5FE23}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example", "example\example.vcxproj", "{BD54949F-7843-4809-B030-C07A47D6B6BE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{32B19F9E-3C1C-4BB6-AC26-36A897F5FE23}.Debug|x64.ActiveCfg = Debug|x64
+		{32B19F9E-3C1C-4BB6-AC26-36A897F5FE23}.Debug|x64.Build.0 = Debug|x64
+		{32B19F9E-3C1C-4BB6-AC26-36A897F5FE23}.Release|x64.ActiveCfg = Release|x64
+		{32B19F9E-3C1C-4BB6-AC26-36A897F5FE23}.Release|x64.Build.0 = Release|x64
+		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Debug|x64.ActiveCfg = Debug|x64
+		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Debug|x64.Build.0 = Debug|x64
+		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Release|x64.ActiveCfg = Release|x64
+		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E40E661-8B88-4365-96A4-3D94AF46E9EB}
+	EndGlobalSection
+EndGlobal
