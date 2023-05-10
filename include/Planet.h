@@ -171,6 +171,9 @@ class Planet
     /// A value of 0 is not-at-all Earth-similar.  A value of 1 is identical to Earth.
     /// A score of > 0.8 is worth evaluating in greater depth for finding potential
     /// habitable planets.
+    /// 
+    /// The ESI is based on material published by the Planetary Habitability Laboratory
+    /// managed by the University of Puerto Rico at Arecibo.
     /// @return The ESI, [0, 1].
     float esi() const { return earthSimilarityIndex; }
 
