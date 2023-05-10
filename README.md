@@ -41,6 +41,12 @@ My changes from Burrows stargen implementation include:
   was going on, and why I did it the way I did.  Some of these comments are to highlight where I did things
   differently, and why.
 
+## BUILDING
+
+The project includes a solution file for Microsoft Visual Studio 2022.  I've tried to stick to STL and standard C++
+constructs, so I think it can be built with other compilers.  I don't have access to an environment where I can
+test that, however.
+
 ## USAGE
 
 Quickstart:
@@ -56,6 +62,16 @@ Quickstart:
 create() method resets the generator each time it is called, so I think that would work.
 
 
+## CONTRIBUTING
+
+I welcome contributions.  If someone wants to provide a way to cross-compile without abandoning the MSVS solution/project, I'd be happy
+to take a pull request (keeping the solution/project intact is a requirement, since I work exclusively in that enviroment currently).
+
+Feel free to open issues to discuss proposed changes or bugs, or please submit pull requests if there are errors that need addressed.
+
+## LICENSE
+
+The library and example application are both released under the MIT license.
 
 ## REFERENCES
 
