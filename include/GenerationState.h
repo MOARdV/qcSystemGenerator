@@ -95,17 +95,19 @@ struct Protoplanet
 /// prior to calling finalize().
 /// 
 /// The intended use sequence is:
-/// 1) Instantiate the structure.
-/// 2) Call init()
-/// 3) Edit any public parameters, such as overriding the outer planet limit.
-/// 4) Call finalize().
-/// 5) Pass GenerationState around as needed.
+/// 1. Instantiate the structure.
+/// 2. Call init()
+/// 3. Edit any public parameters, such as overriding the outer planet limit.
+/// 4. Call finalize().
+/// 5. Pass GenerationState around as needed.
 /// 
 /// During planetary accretion, the numeric parameters are treated as constants.  Only the Dust container is intended
 /// to change.
 class GenerationState
 {
     public:
+    /// @brief Initialize the generation state from the provided Config.
+    /// @param config The config describing how the solar system will be generated.
     GenerationState(const Config* config);
     ~GenerationState() {}
 
@@ -114,6 +116,7 @@ class GenerationState
     /// @brief Finalize the state and store a pointer to the star.
     ///
     /// Practically, all this step does is initialize the dust band state structure.
+    /// @param centralStar The star around which we're accreting dust.
     void finalize(const Star* centralStar)
     {
         star = centralStar;
@@ -187,6 +190,7 @@ class GenerationState
 
     /// @brief Move the generated planet list.  Used after accretion to transfer the
     /// planets to System.
+    /// @return The r-reference to the planet list.
     PlanetList&& movePlanets() { return std::move(planetList); }
 
     /// @brief Returns the outer effect limit for a given protoplanet.
@@ -241,6 +245,7 @@ class GenerationState
     }
 
     /// @brief Return a random axial tilt, per the accrete algorithm
+    /// @param sma The semi-major axis of the body that we're tilting.
     /// @return A normalized axial tilt in the range [0, 180].
     float randomTilt(double sma)
     {

@@ -83,8 +83,10 @@ struct AtmosphereComponent
     Gas gas; //!< The gas
     float fraction; //!< The fraction of the atmosphere composed of this gas.
 
-    ///@brief Less-than operator for sorting.
-    ///@Note The sense is reversed so the operator acts as greater-than, so the highest fraction is listed first.
+    /// @brief Less-than operator for sorting.
+    /// @param rhs The AtmosphereComponent to which we are comparing this.
+    /// @note The sense is reversed so the operator acts as greater-than, so the highest fraction is listed first.
+    /// @return true if rhs.fraction is greater than this->fraction; false otherwise.
     bool operator<(const AtmosphereComponent& rhs) const { return fraction > rhs.fraction; }
 };
 
@@ -223,6 +225,7 @@ class Planet
     PlanetType planetType() const { return type; }
 
     /// @brief Returns a string for the PlanetType.
+    /// @param type The PlanetType that we want a name for.
     /// @return The string corresponding th the planet type.
     static std::string PlanetTypeString(PlanetType type);
 
