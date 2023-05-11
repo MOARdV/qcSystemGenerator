@@ -26,8 +26,8 @@ My changes from Burrows stargen implementation include:
 
 * Use C++.
 * Take advantage of STL for data structure management.
-* Change the seed mechanic used to guide solar system creation.  It does not use exisiting solar systems for templates.
-  Instead, the caller may pass one or more (mass, eccentricity) pairs to the generator to seed preferred planets in a solar system.
+* Change the seed mechanic used to guide solar system creation.  Instead of using exisiting solar systems for templates,
+  the caller may pass one or more (mass, eccentricity) pairs to the generator to seed preferred planets in the proto-solar system.
 * When caller-supplied seeds are not used, the caller has the option of letting the
   system generator create seeds based on a variation of the Titius-Bode Law.
 * Use the Kothari radius computation for all planet types, not just rocky planets.  I found that the radius
@@ -79,9 +79,9 @@ The library and example application are both released under the MIT license.
 * Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/
 * Burdick 1985: Accrete C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/tree/master/originals/burdick/accrete
 * Chen, et al. 2017: "Probabilistic Forecasting of the Masses and Radii of Other Worlds",  Jingjing Chen and David Kipping, The Astrophysical Journal, Vol 834, 17
-* Dole 1969:
+* Dole 1969: "Formation of Planetary Systems by Aggregation: A Computer Simulation", S. H. Dole, RAND paper no. P-4226, 1969
 * Fogg 1985: "Extra-Solar Planetary Systems: A Microcomputer Simulation", Martyn J. Fogg,  Journal of the British Interplanetary Society, Vol 38, pp. 501-514, 1985
-* Kasting 1993: "Habitable Zones around Main Sequence Stars",
+* Kasting 1993: "Habitable Zones around Main Sequence Stars", James F. Kasting, et al., Icarus, Volume 101, Issue 1, January 1993, Pages 108-128
 * Kothari 1936: "The Internal Constitution of Planets", Dr. D. S. Kothari,  Mon. Not. of the Royal Astronomical Society, Vol 96, pp. 833-843, 1936
 * PHL@UPR Arecibo: "Earth Similarity Index", https://phl.upr.edu/projects/earth-similarity-index-esi
 * Pollard 1979: "The prevalence of Earthlike Planets", W. G. Pollard, Amer. Sci., Vol 67, pp. 653-659, 1979
@@ -94,7 +94,7 @@ https://github.com/zakski/accrete-starform-stargen :
 
 ```text
 StarGen/starform/accrete has a long and varied history. Many people have altered it over time.
-he original program was written in Fortran about 30 years ago at Rand. About 15 years ago, in
+The original program was written in Fortran about 30 years ago at Rand. About 15 years ago, in
 1985, Martyn Fogg wrote a version of it and published his results. This lead Matt Burdick to
 create a version first in Pascal and then in C. This program was called "starform" that showed
 up on the net in about 1988. Several versions of starform have since been developed and
