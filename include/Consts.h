@@ -24,6 +24,8 @@
 ****************************************************************************/
 #pragma once
 
+#include <cstdint>
+
 // Non-specific constants
 // 
 // TODO: Document where these values come from.
