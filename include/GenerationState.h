@@ -37,6 +37,7 @@ struct Dust
 {
     /// @brief Inner edge of the band, in AU.
     double innerEdge;
+
     /// @brief Outer edge of the band, in AU.
     double outerEdge;
 
@@ -68,7 +69,7 @@ typedef std::forward_list<Dust> AvailableDust;
 /// criticalMass.  All other values are initialized and modified within GeneratorState::accreteDust().
 struct Protoplanet
 {
-    //--- Configuration values (provided to accreteDust()
+    //--- Configuration values provided to accreteDust()
     double sma; //!< Semi-major axis of the protoplanet.
     double mass; //!< Total mass of the protoplanet, in solar masses.
     float eccentricity; //!< Eccentricity of the protoplanet.
@@ -235,7 +236,7 @@ class GenerationState
     /// @return A number near the `mean`.
     template<class T_> T_ randomNear(T_ mean, T_ threeSigma)
     {
-        std::normal_distribution<T_> nd(mean, threeSigma * (T_)(1.0/3.0));
+        std::normal_distribution<T_> nd(mean, threeSigma * (T_)(1.0 / 3.0));
         return nd(mt);
     }
 
@@ -269,7 +270,6 @@ class GenerationState
     const Star* star;
 
     /// @brief The mean eccentricity of the dust cloud.
-    /// @todo Can we play around with this value?
     double cloudEccentricity;
 
     /// @brief The density of the cloud.

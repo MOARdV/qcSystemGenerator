@@ -31,19 +31,19 @@
 #include <assert.h>
 
 //----------------------------------------------------------------------------
-GenerationState::GenerationState(const Config* config) : 
+GenerationState::GenerationState(const Config* config) :
     seedValue(config->seed),
     protoplanetSeedMass(config->protoplanetSeedMass),
     star(nullptr),
     uniform01(0.0, 1.0)
 {
     mt.seed(config->seed);
-    
+
     cloudEccentricity = config->cloudEccentricity;
     baseDustDensity = config->dustDensity;
-    
+
     availableDust.clear();
-    
+
     dustRemains = false;
     planetList.clear();
 
@@ -134,19 +134,19 @@ void GenerationState::coalescePlanetisimals(Protoplanet& protoplanet)
 
             if (doMoons)
             {
-    			if (protoplanet.mass < protoplanet.criticalMass)
-    			{
+                if (protoplanet.mass < protoplanet.criticalMass)
+                {
                     double existingMoonMass = planet->totalMoonMass();
-    				
+
                     if ((protoplanet.mass * SolarMassToEarthMass) < 2.5
-    					&& (protoplanet.mass * SolarMassToEarthMass) > .0001
-    					&& existingMoonMass < (planet->mass() * .05)
-    					)
-    				{
+                        && (protoplanet.mass * SolarMassToEarthMass) > .0001
+                        && existingMoonMass < (planet->mass() * .05)
+                        )
+                    {
                         Planet moon(protoplanet.sma, protoplanet.eccentricity, protoplanet.dustMass, protoplanet.gasMass);
-                        
+
                         if (protoplanet.mass > planet->mass())
-    					{
+                        {
                             // Swap the parameters for planet and this moon.  Add the old planet / new moon
                             // to the new planet's menagerie.
                             planet->exchange(moon);
@@ -159,7 +159,7 @@ void GenerationState::coalescePlanetisimals(Protoplanet& protoplanet)
                         // Early return - the planet captured the protoplanet or vice-versa
                         return;
                     }
-    			}
+                }
             }
 
             // Protoplanet collision
@@ -221,7 +221,7 @@ void GenerationState::coalescePlanetisimals(Protoplanet& protoplanet)
 //----------------------------------------------------------------------------
 double GenerationState::collectDust(double lastMass, double& dustMass, double& gasMass, Protoplanet& protoplanet, AvailableDust::iterator dustband)
 {
-    dustMass = 0.0; 
+    dustMass = 0.0;
     gasMass = 0.0;
 
     if (dustband == availableDust.end())

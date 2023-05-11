@@ -106,7 +106,7 @@ class Star
 {
     public:
     /// @brief Null-initialize a star.
-    Star():stellarMass(0.0f), stellarLuminosity(0.0f), stellarAge(0.0), lifespan(0.0), curtMass(0.0), sqrtLum(0.0), outerPlanetaryR(0.0) {}
+    Star() :stellarMass(0.0f), stellarLuminosity(0.0f), stellarAge(0.0), lifespan(0.0), curtMass(0.0), sqrtLum(0.0), outerPlanetaryR(0.0) {}
 
     /// @brief Initialize a star based on the solar mass of the star.
     /// 
@@ -183,7 +183,7 @@ class Star
     /// 
     /// Zone I is the inner zone of the nebular dust where volatile ices can not form, and it contains primarily heavier elements.
     /// Zone II is the middle zone, where volatile ices can form and H2 and He are available in the gases, as well as the heavier elements.
-    /// Zone III is the outer zone, where the gravitational forces are too low to retian H2 and He, leaving volatile ices and heavier elements.
+    /// Zone III is the outer zone, where the gravitational forces are too low to retain H2 and He, leaving volatile ices and heavier elements.
     /// 
     /// The return value is a number in the range of 1.0 to 3.0.  Fractional values (eg, 2.4) indicate a location in the transitory region
     /// from one Zone to the next.

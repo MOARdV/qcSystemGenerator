@@ -63,7 +63,7 @@ enum class PlanetType
 
     //--- Rocky planet types
     Rocky, //!< Catch-all for non-gaseous planets.  Terrestrial planets.
-    
+
     AsteroidBelt, //!< A collection of boulder-to-mountain sized rocky and metallic objects.
     IcePlanet, //!< A colder terrestrial planet dominated by surface ices.
     Terrestrial, //!< A rocky planet with atmosphere and liquid hydrosphere.
@@ -71,7 +71,7 @@ enum class PlanetType
 
     //--- Gaseous planet types
     Gaseous,    //!< Catch-all for a planet with a substantial volatile gas composition.  Used as an interim classification
-    
+
     IceGiant,   //!< The smaller sized gaseous planets, also called Neptunian.  Uranus and Neptune fall into this category.  Roughly 2.0 (+/-0.7)x M(Earth) to 0.41 (+/-0.07)x M(Jupiter).
     GasGiant,   //!< Large planets primarily composed of hydrogen and helium.  Jupiter falls into this category; Saturn barely makes the cutoff, as well.  0.41x M(Jupiter) on up.
     BrownDwarf, //!< Large gas giants, but not large enough to sustain nuclear fusion of hydrogen.  13x to 80x M(Jupiter).
@@ -139,7 +139,7 @@ class Planet
     /// @param p The planet to exchange.
     void exchange(Planet& p);
 
-    //--- Accessors.  Most of them are valid after calling evaluate().
+    //--- Accessors.  Most of them are valid only after calling evaluate().
 
     /// @brief Returns the percentage of the surface covered by clouds.
     /// @return A value in the range [0, 1].
@@ -200,9 +200,9 @@ class Planet
 
     /// @brief Is this planet a gaseous planet (gas giant, ice giant, etc)
     /// @return true if the planet is one of the gaseous types.
-    bool isGaseous() const 
-    { 
-        return 
+    bool isGaseous() const
+    {
+        return
             (type == PlanetType::Gaseous) ||
             (type == PlanetType::IceGiant) ||
             (type == PlanetType::GasGiant) ||
@@ -215,7 +215,7 @@ class Planet
 
     /// @brief Returns the planet's ordinal position in the planetary system (1 = closest to star),
     /// or the moon's ordinal position in the moon system (1 = closest to planet).
-    /// @return The ordinal
+    /// @return The 1-based ordinal position.
     int ordinal() const { return planetNo; }
 
     /// @brief Returns the classification of the planet type.
@@ -252,16 +252,16 @@ class Planet
 
     //-- Moon system inspection methods.
 
-    /// @brief Return an iterator for the first planet in the system.
+    /// @brief Return an iterator for the first moon orbiting the planet.
     /// @return Beginning iterator
     std::forward_list<Planet>::const_iterator beginMoon() const { return moon.begin(); }
 
-    /// @brief Return an iterator for the past-the-last planet in the system.
+    /// @brief Return an iterator for the past-the-last moon orbiting the planet.
     /// @return End iterator
     std::forward_list<Planet>::const_iterator endMoon() const { return moon.end(); }
 
-    /// @brief Returns the number of planets in the system.
-    /// @return The planet count
+    /// @brief Returns the number of moons orbiting the planet.
+    /// @return The moon count.
     size_t sizeMoon() const { return std::distance(moon.begin(), moon.end()); }
 
     /// @brief Returns the total mass of the planet's moons.
@@ -291,7 +291,7 @@ class Planet
     ///
     /// from Hart, eq.20
     static constexpr float EarthConvectionFactor = 0.43f;
- 
+
     /// @brief The minimum ratio of gas mass to total mass to qualify as a gaseous planet
     static constexpr double GaseousPlanetThreshold = 0.05;
 
@@ -356,7 +356,7 @@ class Planet
     float lowTemp; //!< Night-time temperature, in Kelvin.
     float maxTemp; //!<// Summer/Day temperature, in Kelvin.
     float minTemp; //!< Winter/Night temperature, in Kelvin.
-    
+
     std::vector<AtmosphereComponent> atmosphere; //!< Major components of the atmosphere
 
     float earthSimilarityIndex; //!< How Earth-like are the surface conditions?
@@ -376,7 +376,7 @@ class Planet
     ///
     /// Per the original documentation for this function (note that variable names are
     /// changed in this implementation, and values are not returned, since they're
-    /// components of this object:
+    /// components of this object):
     ///
     /// Fogg's information for this routine came from Dole "Habitable Planets
     /// for Man", Blaisdell Publishing Company, NY, 1964.  From this, he came

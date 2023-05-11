@@ -35,19 +35,19 @@ static constexpr float Albedo_Cloud = 0.52f;
 /// @brief Albedo of the Earth.
 static constexpr float Albedo_Earth = 0.3f;
 
-/// @brief The mean albedo of the solar system's 4 gaseous worlds.
+/// @brief The mean albedo of our solar system's 4 gaseous worlds.
 static constexpr float Albedo_GasGiant = 0.492f;
 
-/// @brief Albedo of ice in atmosphere.
+/// @brief Albedo of ice in an atmosphere.
 static constexpr float Albedo_Ice = 0.7f;
 
-/// @brief Albedo of ice outside of atmosphere
+/// @brief Albedo of ice outside of an atmosphere.
 static constexpr float Albedo_IceAirless = 0.4f;
 
-/// @brief Albedo of rock in atmosphere.
+/// @brief Albedo of rock in an atmosphere.
 static constexpr float Albedo_Rock = 0.15f;
 
-/// @brief Albedo of rock outside of atmosphere.
+/// @brief Albedo of rock outside of an atmosphere.
 static constexpr float Albedo_RockAirless = 0.07f;
 
 /// @brief Albedo of liquid water.
@@ -68,7 +68,7 @@ static constexpr float BarPerMillibar = 0.001f;
 /// @brief The value raised by the orbit number exponent when evaluating Bode's Law.
 ///
 /// In the original formulation, this value was 2.  Blagg 1913 proposed the more
-/// precise value of 1.7275
+/// precise value of 1.7275.
 static constexpr float BodeProgression = 1.7275f;
 
 /// @brief Transition from Jovian gas giant to brown dwarf, in Jovian mass.
@@ -189,7 +189,7 @@ static constexpr double SolarMassInGrams = 1.989e33;
 /// From Chen, et al. 2017.  Original value is 2.04 +0.66/-0.59 M(Earth).
 static constexpr double RockyTransition = 2.04 / SolarMassToEarthMass;
 
-/// @brief Convert seconds -> years
+/// @brief Convert seconds -> years.  Currently uses 24.0 hours per day.
 static constexpr double YearsPerSecond = 1.0 / (SecondsPerHour * 24.0 * DaysPerYear);
 
 /// @brief Weight of molecular hydrogen.

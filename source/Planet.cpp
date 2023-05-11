@@ -52,32 +52,32 @@ struct ChemicalTable
 /// @brief Table of atmospheric gases gleaned from Burrows 2006.  Max IPP values imported from Dole 1969.
 static constexpr ChemicalTable gases[] =
 {
-//{AN_H,  "H",  "H<SUB><SMALL>2</SMALL></SUB>",	 "Hydrogen",         1.0079,  14.06,  20.40,  8.99e-05,  0.00125893,  27925.4,       1,		0.0},
-    { Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
-//{AN_HE, "He", "He",							 "Helium",           4.0026,   3.46,   4.20,  0.0001787, 7.94328e-09, 2722.7,        0,		MAX_HE_IPP},
-    { Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
-//{AN_N,  "N",  "N<SUB><SMALL>2</SMALL></SUB>",	 "Nitrogen",        14.0067,  63.34,  77.40,  0.0012506, 1.99526e-05, 3.13329,       0,		MAX_N2_IPP},
-    { Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
-//{AN_O,  "O",  "O<SUB><SMALL>2</SMALL></SUB>",	 "Oxygen",          15.9994,  54.80,  90.20,  0.001429,  0.501187,    23.8232,       10,	MAX_O2_IPP},
-    { Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
-//{AN_NE, "Ne", "Ne",							 "Neon",            20.1700,  24.53,  27.10,  0.0009,    5.01187e-09, 3.4435e-5,     0,		MAX_NE_IPP},
-    { Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
-//{AN_AR, "Ar", "Ar",							 "Argon",           39.9480,  84.00,  87.30,  0.0017824, 3.16228e-06, 0.100925,      0,		MAX_AR_IPP},
-    { Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
-//{AN_KR, "Kr", "Kr",							 "Krypton",         83.8000, 116.60, 119.70,  0.003708,  1e-10,       4.4978e-05,    0,		MAX_KR_IPP},
-    { Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
-//{AN_XE, "Xe", "Xe",							 "Xenon",          131.3000, 161.30, 165.00,  0.00588,   3.16228e-11, 4.69894e-06,   0,		MAX_XE_IPP},
-    { Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
-//{AN_NH3, "NH3", "NH<SUB><SMALL>3</SMALL></SUB>", "Ammonia",       17.0000, 195.46, 239.66,  0.001,     0.002,       0.0001,        1,		MAX_NH3_IPP},
-    { Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
-//{AN_H2O, "H2O", "H<SUB><SMALL>2</SMALL></SUB>O", "Water",         18.0000, 273.16, 373.16,  1.000,     0.03,        0.001,         0,		0.0},
-    { Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
-//{AN_CO2, "CO2", "CO<SUB><SMALL>2</SMALL></SUB>", "CarbonDioxide", 44.0000, 194.66, 194.66,  0.001,     0.01,        0.0005,        0,		MAX_CO2_IPP},
-    { Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
-//{AN_O3,   "O3", "O<SUB><SMALL>3</SMALL></SUB>",  "Ozone",         48.0000,  80.16, 161.16,  0.001,     0.001,       0.000001,      2,		MAX_O3_IPP},
-    { Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
-//{AN_CH4, "CH4", "CH<SUB><SMALL>4</SMALL></SUB>", "Methane",       16.0000,  90.16, 109.16,  0.010,     0.005,       0.0001,        1,		MAX_CH4_IPP},
-    { Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
+    //{AN_H,  "H",  "H<SUB><SMALL>2</SMALL></SUB>",	 "Hydrogen",         1.0079,  14.06,  20.40,  8.99e-05,  0.00125893,  27925.4,       1,		0.0},
+        { Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
+        //{AN_HE, "He", "He",							 "Helium",           4.0026,   3.46,   4.20,  0.0001787, 7.94328e-09, 2722.7,        0,		MAX_HE_IPP},
+            { Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
+            //{AN_N,  "N",  "N<SUB><SMALL>2</SMALL></SUB>",	 "Nitrogen",        14.0067,  63.34,  77.40,  0.0012506, 1.99526e-05, 3.13329,       0,		MAX_N2_IPP},
+                { Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
+                //{AN_O,  "O",  "O<SUB><SMALL>2</SMALL></SUB>",	 "Oxygen",          15.9994,  54.80,  90.20,  0.001429,  0.501187,    23.8232,       10,	MAX_O2_IPP},
+                    { Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
+                    //{AN_NE, "Ne", "Ne",							 "Neon",            20.1700,  24.53,  27.10,  0.0009,    5.01187e-09, 3.4435e-5,     0,		MAX_NE_IPP},
+                        { Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
+                        //{AN_AR, "Ar", "Ar",							 "Argon",           39.9480,  84.00,  87.30,  0.0017824, 3.16228e-06, 0.100925,      0,		MAX_AR_IPP},
+                            { Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
+                            //{AN_KR, "Kr", "Kr",							 "Krypton",         83.8000, 116.60, 119.70,  0.003708,  1e-10,       4.4978e-05,    0,		MAX_KR_IPP},
+                                { Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
+                                //{AN_XE, "Xe", "Xe",							 "Xenon",          131.3000, 161.30, 165.00,  0.00588,   3.16228e-11, 4.69894e-06,   0,		MAX_XE_IPP},
+                                    { Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
+                                    //{AN_NH3, "NH3", "NH<SUB><SMALL>3</SMALL></SUB>", "Ammonia",       17.0000, 195.46, 239.66,  0.001,     0.002,       0.0001,        1,		MAX_NH3_IPP},
+                                        { Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
+                                        //{AN_H2O, "H2O", "H<SUB><SMALL>2</SMALL></SUB>O", "Water",         18.0000, 273.16, 373.16,  1.000,     0.03,        0.001,         0,		0.0},
+                                            { Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
+                                            //{AN_CO2, "CO2", "CO<SUB><SMALL>2</SMALL></SUB>", "CarbonDioxide", 44.0000, 194.66, 194.66,  0.001,     0.01,        0.0005,        0,		MAX_CO2_IPP},
+                                                { Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
+                                                //{AN_O3,   "O3", "O<SUB><SMALL>3</SMALL></SUB>",  "Ozone",         48.0000,  80.16, 161.16,  0.001,     0.001,       0.000001,      2,		MAX_O3_IPP},
+                                                    { Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
+                                                    //{AN_CH4, "CH4", "CH<SUB><SMALL>4</SMALL></SUB>", "Methane",       16.0000,  90.16, 109.16,  0.010,     0.005,       0.0001,        1,		MAX_CH4_IPP},
+                                                        { Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
 };
 static constexpr int gasesCount = _countof(gases);
 
@@ -399,9 +399,9 @@ void Planet::calculateGases()
 
         for (int i = 0; i < gasesCount; ++i)
         {
-        //        long double yp = gases[i].boil /
-        //            (373. * ((log((pressure)+0.001) / -5050.5) +
-        //                (1.0 / 373.)));
+            //        long double yp = gases[i].boil /
+            //            (373. * ((log((pressure)+0.001) / -5050.5) +
+            //                (1.0 / 373.)));
             const float yp = gases[i].boilingPoint /
                 (373.0f * ((logf(pressure + 0.001f) / -5050.5f) + (1.0f / 373.0f)));
 
@@ -421,32 +421,32 @@ void Planet::calculateGases()
                 {
                     react = 0.15f * static_cast<float>(star->age() / 4.0e9);
                 }
-    //            else if (strcmp(gases[i].symbol, "He") == 0)
+                //            else if (strcmp(gases[i].symbol, "He") == 0)
                 else if (gases[i].chemical == Gas::Helium)
                 {
                     abund *= 0.001f + static_cast<float>(gasMass / totalMass);
                     pres2 = (0.75f + pressure);
                     react = powf(1.0f / (1.0f + gases[i].reactivity), starAgeOver2B * pres2);
                 }
-    //            else if ((strcmp(gases[i].symbol, "O") == 0 ||
-    //                strcmp(gases[i].symbol, "O2") == 0) &&
-    //                sun->age > 2e9 &&
-    //                planet->surf_temp > 270 && planet->surf_temp < 400)
+                //            else if ((strcmp(gases[i].symbol, "O") == 0 ||
+                //                strcmp(gases[i].symbol, "O2") == 0) &&
+                //                sun->age > 2e9 &&
+                //                planet->surf_temp > 270 && planet->surf_temp < 400)
                 else if (gases[i].chemical == Gas::Oxygen &&
-                    star->age() > 2.0e9 &&
-                    // TODO: Where do these come from?
-                    meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
+                         star->age() > 2.0e9 &&
+                         // TODO: Where do these come from?
+                         meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
                 {
-                /*	pres2 = (0.65 + pressure/2);			Breathable - M: .55-1.4 	*/
+                    /*	pres2 = (0.65 + pressure/2);			Breathable - M: .55-1.4 	*/
                     pres2 = (0.89f + pressure / 4.0f); /*	Breathable - M: .6 -1.8 	*/
                     react = powf(1.0f / (1.0f + gases[i].reactivity), static_cast<float>(pow(starAgeOver2B, 0.25)) * pres2);
                 }
-    //            else if (strcmp(gases[i].symbol, "CO2") == 0 &&
-    //                sun->age > 2e9 &&
-    //                planet->surf_temp > 270 && planet->surf_temp < 400)
+                //            else if (strcmp(gases[i].symbol, "CO2") == 0 &&
+                //                sun->age > 2e9 &&
+                //                planet->surf_temp > 270 && planet->surf_temp < 400)
                 else if (gases[i].chemical == Gas::CarbonDioxide &&
-                    star->age() > 2.0e9 &&
-                    meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
+                         star->age() > 2.0e9 &&
+                         meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
                 {
                     pres2 = 0.75f + pressure;
                     react = powf(1.0f / (1.0f + gases[i].reactivity), static_cast<float>(pow(starAgeOver2B, 0.5)) * pres2);
@@ -504,7 +504,7 @@ void Planet::calculateSurfaceConditions(bool initialize, GenerationState* state)
     // planetary radius of a planet (in Km), this function returns the
     // fraction of the planet covered with water.
     float newHydrosphere = std::min(1.0f,
-        static_cast<float>((EarthHydrosphere * volatileGasInventory / 1000.0) * pow(EarthRadiusKm / radius, 2.0)));
+                                    static_cast<float>((EarthHydrosphere * volatileGasInventory / 1000.0) * pow(EarthRadiusKm / radius, 2.0)));
 
     // Burke 1985 notes:
     // Given the surface temperature of a planet (in Kelvin), this function
@@ -650,8 +650,8 @@ void Planet::calculateSurfacePressure(GenerationState* state)
 float Planet::effectiveTemperature(float albedo) const
 {
     return static_cast<float>(sqrt(star->ecosphere() / solarSMA)
-        * powf((1.0f - albedo) / (1.0f - Albedo_Earth), 0.25f)
-        * EarthEffectiveTemperature);
+                              * powf((1.0f - albedo) / (1.0f - Albedo_Earth), 0.25f)
+                              * EarthEffectiveTemperature);
 }
 
 //----------------------------------------------------------------------------
@@ -697,8 +697,8 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         if (type == PlanetType::Rocky)
         {
             printf("Gaseous planet demoted to rocky: %s molecular retention and %s mass\n",
-                sufficientMolecularRetention ? "sufficient" : "inadequate",
-                sufficientOverallMass ? "sufficient" : "inadequate");
+                   sufficientMolecularRetention ? "sufficient" : "inadequate",
+                   sufficientOverallMass ? "sufficient" : "inadequate");
         }
     }
     else
@@ -721,8 +721,8 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         if ((gasMass / totalMass) > IcePlanetThreshold && totalMass > RockyTransition)
         {
             printf("Re-evaluating rocky planet -> gas dwarf.  dustMass %s, gasRatio = %.3lf\n",
-                (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())) ? "critical" : "sub-critical",
-                gasMass / totalMass);
+                   (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())) ? "critical" : "sub-critical",
+                   gasMass / totalMass);
 
             const double h2Mass = gasMass * 0.85;
             const double h2Life = GasLife(Weight_MolecularHydrogen, this);
@@ -845,7 +845,7 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         if (surfacePress < 1.0f)
         {
             // Effectively no atmosphere (sub-1mb) - is it small enough to be an asteroid belt?
-            type = (totalMass * SolarMassToEarthMass < AsteroidMassLimit&& planet == nullptr) ? PlanetType::AsteroidBelt : PlanetType::Rocky;
+            type = (totalMass * SolarMassToEarthMass < AsteroidMassLimit && planet == nullptr) ? PlanetType::AsteroidBelt : PlanetType::Rocky;
         }
         else
         {
@@ -1020,7 +1020,7 @@ float Planet::greenhouseRise(float effectiveTemperature) const
     const float convectionFactor = EarthConvectionFactor * powf(surfacePress * static_cast<float>(AtmPerMb), 0.4f);
 
     return std::max(0.0f,
-        (powf(1.0f + 0.75f * opticalDepth, 0.25f) - 1.0f) * effectiveTemperature * convectionFactor);
+                    (powf(1.0f + 0.75f * opticalDepth, 0.25f) - 1.0f) * effectiveTemperature * convectionFactor);
 }
 
 //----------------------------------------------------------------------------

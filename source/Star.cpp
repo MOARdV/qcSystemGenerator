@@ -34,7 +34,7 @@
 
 /*
 * Development notes
-* 
+*
 * http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
 */
 
@@ -151,14 +151,14 @@ void Star::stellarClass(char* output, size_t sizeofOutput) const
     {
         output[0] = ::stellarClass[0].stellarClass;
         output[1] = ::stellarClass[0].subclass;
-        
+
         return;
     }
 
     auto result = std::adjacent_find(std::begin(::stellarClass), std::end(::stellarClass), [=](const StellarClass& left, const StellarClass& right)
-        {
-            return (left.logLum >= logLum && right.logLum < logLum);
-        });
+                                     {
+                                         return (left.logLum >= logLum && right.logLum < logLum);
+                                     });
 
     if (result != std::end(::stellarClass))
     {

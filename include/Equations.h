@@ -36,7 +36,7 @@ class Star;
 /// @brief Given the semi-major axis and eccentricity of an orbit, and the luminosity
 /// of the star, returns the minimum mass required to retain gases.
 /// 
-/// Protoplanets that exceed this mass will retain gas giants and become gas giants.
+/// Protoplanets that exceed this mass will retain gas and become gas giants.
 /// @param sma The SMA, in AU.
 /// @param eccentricity Eccentricity of the orbit, [0.0, 1.0).
 /// @param stellarLuminosity Luminosity of the star, Sol = 1.0.
@@ -112,8 +112,8 @@ static constexpr double K_B = 5.71e12;
 /// it was implemented like that.
 ///
 /// The Kothari equation does a better job than empirical_density() for gas giants and
-///  rocky planets, so I have decided to use this function exclusively, with the
-///  following changes (following the background information).
+/// rocky planets, so I have decided to use this function exclusively, with the
+/// following changes (following the background information).
 /// 
 /// Fogg 1985 describes three zones of dust, Zones 1, 2, and 3.  The zones originated in
 /// Pollard 1979.  Zone 1 contains Class III material; Zone 2 contains Class I, Class II,
@@ -136,7 +136,7 @@ static constexpr double K_B = 5.71e12;
 /// uses 5 AU as the demarcation of the Snow Line, I am making the Z1-Z2 transition 1 AU wide
 /// (Z2 begins at 4 AU, Z1 ends at 5 AU).
 /// 
-/// Pollard 1979 says the Zone2 to Zone 3 transition is around 14 AU to 16 AU, and the Burdick 1985
+/// Pollard 1979 says the Zone 2 to Zone 3 transition is around 14 AU to 16 AU, and the Burdick 1985
 /// source code uses 15 AU.  I am making this transition 2 AU wide (Z3 begins at 14 AU, Z2 ends at
 /// 16 AU).
 /// 
@@ -169,7 +169,7 @@ double Luminosity(double stellarMass);
 
 /// @brief Returns the minimum molecular weight retained by a world.
 /// 
-/// This function accounts for gaseous escape over time using an iterate process
+/// This function accounts for gaseous escape over time using an iterative process
 /// to converge on a result.
 /// @param planet The planet we're processing.
 /// @param star The star we're orbiting.
@@ -199,11 +199,8 @@ inline double MolecularLimit(double escapeVelocity, double exosphereTemperature)
 /// @return Orbital period, in days.
 double Period(double distance, double mass1, double mass2);
 
-
 //----------------------------------------------------------------------------
 /// @brief Returns the root-mean-squared velocity of a given molecule.
-/// 
-/// @note This value is only valid after Planet::evaluate() has been called.
 /// @param molecularWeight Molecular weight to compute.
 /// @param exosphereTemperature Exosphere temperature, in Kelvin.
 /// @return RMS velocity, in m/s.

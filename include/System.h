@@ -57,6 +57,10 @@ typedef std::pair<float, float> PlanetisimalSeed;
 /// layout of the solar system (in the former case), or to generate a layout that conforms to
 /// Bode's Law (in the latter case).
 /// 
+/// These seeds are identical to the planetisimals that are generated normally.  However, by planting
+/// them before the random planetisimals are generated, you can guarantee planets will accrue in
+/// certain orbits.
+/// 
 /// Once those seeds are consumed, additional planetisimals are generated at random distances from
 /// the star.  These planetisimals consume free dust, and they potentially collide with existing
 /// planetisimals (or are captured to become moons) until no dust remains.
@@ -65,8 +69,8 @@ typedef std::pair<float, float> PlanetisimalSeed;
 /// create() method returns, planetList contains the planets of the solar system.
 /// 
 /// Bode seeds are an implementation based on Mary Blagg's proposed substitute for Bode's Law
-/// (see Blagg 1913).  The implementation in here is roughly based on her proposal, but it replaces
-/// her second term {B + f(a + nb)} with GenerationState::randomNear(B, 0.3).  The primary reason
+/// (see Blagg 1913).  The implementation here is roughly based on her proposal, but it replaces
+/// her second term {B + f(a + nb)} with GenerationState::randomNear(B, B * 0.1).  The primary reason
 /// for this change is that I had no success getting the f(a + nb) function to return results that
 /// matched the original paper's, which tells me either I fundamentally messed something up,
 /// or I misunderstood the terms.  Either way, the randomNear function provides a value in the

@@ -47,7 +47,7 @@ void System::create(const Config* appConfig)
 void System::create(const Config* appConfig, const std::vector<PlanetisimalSeed>& planetSeed)
 {
     planetList.clear();
-    
+
     protoplanetsGenerated = 0;
 
     if (appConfig != nullptr)

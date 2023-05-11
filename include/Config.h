@@ -29,16 +29,16 @@
 /// @brief Configuration / override parameter structure.
 ///
 /// When this structure is instantiated, all values are set to defaults.  Any of them may be overridden prior to calling
-/// System::create().  Look at the documentations for the member values for explanations of their use.
+/// System::create().  Look at the documentation of the member values for explanations of their use.
 struct Config
 {
-/// @brief Mean eccentricity of the nebular dust.
+    /// @brief Mean eccentricity of the nebular dust.
     static constexpr double CloudEccentricity = 0.2;
 
     ///@brief A in Dole's paper
     static constexpr double DustDensity = 2.0e-3;
 
-    /// @brief Mass of protoplanet seed.  Each protoplanet that is spawned during system creation starts with this mass.  In solar mass.
+    /// @brief Mass of protoplanet seed.  Each protoplanet that is spawned during system creation starts with this mass.  In units of solar mass.
     static constexpr double ProtoplanetSeedMass = 1.0e-15;
 
     /// @brief Initialize configuration values to their defaults.
@@ -55,15 +55,22 @@ struct Config
         randomAxialTilt(false)
     { }
 
-    uint64_t seed; //!< RNG seed.  When 0, a seed is generated based on current system time.
-    
+    /// @brief RNG seed.  When 0, a seed is synthesized based on current system time.
+    uint64_t seed;
+
     /// @brief Override for the maximum planet formation distance.
     ///
     /// If positive, and less than Star::outerPlanetaryLimit(), this override is used.  Otherwise, it is ignored.
     double overrideOuterPlanetLimit;
-    double cloudEccentricity; //!< The mean eccentricity of dust in the planetary dust cloud.  Value will be clamped to [0, 0.99].
-    double dustDensity; //!< Density of the planetary dust cloud.
-    double protoplanetSeedMass; //!< The mass of a protoplanet seed.  This is the initial mass that is used to accumulate dust and gas into a planet.
+
+    /// @brief The mean eccentricity of dust in the planetary dust cloud.  Value will be clamped to [0, 0.99].
+    double cloudEccentricity;
+
+    /// @brief Density of the planetary dust cloud.
+    double dustDensity;
+
+    /// @brief The mass of a protoplanet seed.  This is the initial mass that is used to accumulate dust and gas into a planet.
+    double protoplanetSeedMass;
 
     /// @brief The mass of the central star, in Solar masses.
     ///
@@ -73,8 +80,15 @@ struct Config
     /// provide good results.  Values outside the supported range will be clamped.
     float stellarMass;
 
-    bool computeGases; //!< When true, synthesize an atmospheric composition.
-    bool generateBodeSeeds; //!< When true, planetisimal seeds based on the Blagg modification of Bode's Law will be used to initialize the planetary system.
-    bool generateMoons; //!< When true, planetisimal collisions may result in moon capture instead of always merging planetisimals.
-    bool randomAxialTilt; //!< When true, axial tilt is randomly computed; when false, all planets and moons have a 0 tilt.
+    /// @brief When true, synthesize an atmospheric composition.
+    bool computeGases;
+
+    /// @brief When true, planetisimal seeds based on the Blagg modification of Bode's Law will be used to initialize the planetary system.
+    bool generateBodeSeeds;
+
+    /// @brief When true, planetisimal collisions may result in moon capture instead of always merging planetisimals.
+    bool generateMoons;
+
+    /// @brief When true, axial tilt is randomly computed; when false, all planets and moons have a 0 tilt.
+    bool randomAxialTilt;
 };
