@@ -29,6 +29,18 @@
 // TODO: Document where these values come from.
 // TODO: Organize by where they're used.
 
+/// @brief Major version of qcSystemGenerator
+static constexpr uint32_t SysGenMajor = 1u;
+
+/// @brief Minor version of qcSystemGenerator
+static constexpr uint32_t SysGenMinor = 0u;
+
+/// @brief Patch version of qcSystemGenerator
+static constexpr uint32_t SysGenPatch = 0u;
+
+/// @brief qcSystemGenerator version
+static constexpr uint32_t SysGenVersion = (SysGenMajor << 22u) | (SysGenMinor << 12u) | (SysGenPatch);
+
 /// @brief Albedo of clouds.
 static constexpr float Albedo_Cloud = 0.52f;
 
