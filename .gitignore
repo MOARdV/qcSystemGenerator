@@ -397,4 +397,8 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# Don't include the doxygen generator
 doxygen/
+
+# Don't include the doxygen docs, since they can't be displayed online. :(
+docs/
