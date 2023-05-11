@@ -10,7 +10,12 @@ trace their origin to Matt Burdick's 1988 (and subsequent) edition.
 While I was responsible for one of the Burdick-derived versions in the 1990s, this one is descended
 from the Jim Burrows stargen @ http://www.eldacur.com/~brons/
 
+The goal of this version is to provide
+an agnostic solar system generator, as opposed to one intended for use with a specific tabletop role-playing game.
+It is intended to generate solar systems with Earth-like habitable planets if seeds are not provided.
+
 The code is organized into the qcSystemGenerator static library project plus a one-file example project that demonstrates its use.
+It is currently geared towards use with Microsoft Visual Studio 2022, since that's the environment that I work in.
 
 The intent of this library is to generate reasonable solar systems that bias towards containing a
 planet in the Life Zone, although it does not require that planet to be entirely Earth-like.
@@ -20,10 +25,9 @@ planet in the Life Zone, although it does not require that planet to be entirely
 My changes from Burrows stargen implementation include:
 
 * Use C++.
-* Use STL forward_list objects to manage the linked lists, instead of implementing
-  them by hand.  Take advantage of other STL classes, as well.
-* Change the seed mechanic.  It does not use exisiting solar systems for templates.
-  Instead, the caller may pass one or more (mass, eccentricity) pairs to the generator to seed a solar system.
+* Take advantage of STL for data structure management.
+* Change the seed mechanic used to guide solar system creation.  It does not use exisiting solar systems for templates.
+  Instead, the caller may pass one or more (mass, eccentricity) pairs to the generator to seed preferred planets in a solar system.
 * When caller-supplied seeds are not used, the caller has the option of letting the
   system generator create seeds based on a variation of the Titius-Bode Law.
 * Use the Kothari radius computation for all planet types, not just rocky planets.  I found that the radius
@@ -33,8 +37,8 @@ My changes from Burrows stargen implementation include:
   equation so that the zone transitions have a width greater than zero.  Instead of a discontinuity at
   each transition, there's a blend between the zones.
 * Significantly change the planetary evaluation.  There were a number of redundant evaluations, and
-  a number of unused values (computed, but notionally duplicative of other values).
-* Change the planet types.  There wasn't a lot of explanation of the types, although I could infer their
+  a number of unused values that were computed that were notionally duplicative of other values.
+* Change the planet type enumerants.  There wasn't a lot of explanation of the types, although I could infer their
   intent based on the criteria used to select them.
 * Use random numbers a little bit more - such as adding some variation to albedos.
 * Document the code.  Documentation was spotty.  I strived to provide more robust explanations for what
@@ -43,9 +47,9 @@ My changes from Burrows stargen implementation include:
 
 ## BUILDING
 
-The project includes a solution file for Microsoft Visual Studio 2022.  I've tried to stick to STL and standard C++
+The project includes a solution file for Microsoft Visual Studio 2022.  I've tried to stick to STL and conventional C++14
 constructs, so I think it can be built with other compilers.  I don't have access to an environment where I can
-test that, however.
+test that, however.  If someone wants to set up cross-compiling support and submit a pull request, I'd appreciate it.
 
 ## USAGE
 
@@ -58,16 +62,12 @@ Quickstart:
 3) Call one of the System::create() methods.  When create returns, System::star and System::PlanetList are
    fully evaluated.
 
-*** TODO: Verify that system may be used for batch system generation by looping over steps 2 and 3, and saving off results.  The
-create() method resets the generator each time it is called, so I think that would work.
-
-
 ## CONTRIBUTING
 
 I welcome contributions.  If someone wants to provide a way to cross-compile without abandoning the MSVS solution/project, I'd be happy
-to take a pull request (keeping the solution/project intact is a requirement, since I work exclusively in that enviroment currently).
+to take a pull request (keeping the solution/project intact is a requirement, since I work exclusively in the MSVS 2022 environment currently).
 
-Feel free to open issues to discuss proposed changes or bugs, or please submit pull requests if there are errors that need addressed.
+Please feel free to open issues to discuss changes or bugs, or to submit pull requests if there are errors that need addressed.
 
 ## LICENSE
 
@@ -76,7 +76,7 @@ The library and example application are both released under the MIT license.
 ## REFERENCES
 
 * Blagg 1913: "On a Suggested Substitute for Bode's Law", Mary A. Blagg, Monthly Notices of the Royal Astronomical Society. Vol 73, pp. 414-422, 1913
-* Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/tree/master/src
+* Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/
 * Burdick 1985: Accrete C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/tree/master/originals/burdick/accrete
 * Chen, et al. 2017: "Probabilistic Forecasting of the Masses and Radii of Other Worlds",  Jingjing Chen and David Kipping, The Astrophysical Journal, Vol 834, 17
 * Dole 1969:
