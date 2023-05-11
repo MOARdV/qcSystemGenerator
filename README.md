@@ -4,7 +4,7 @@
 ## INTRODUCTION
 
 This is yet another planetary system generator derived from accrete.  Per the credits and readmes
-in the other implementations, the program originated in the early 1970s, but most reproductions can
+in the other implementations, accrete originated in the early 1970s, but most reproductions can
 trace their origin to Matt Burdick's 1988 (and subsequent) edition.
 
 While I was responsible for one of the Burdick-derived versions in the 1990s, this one is descended
