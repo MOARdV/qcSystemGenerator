@@ -158,6 +158,9 @@ static constexpr double EscapeToRmsVelocity = 1.0 / GasRetentionThreshold;
 /// @brief The gravity constant, in dyne (cm^2)/(gram^2).
 static constexpr double GravityConstant = 6.672e-8;
 
+/// @brief The number of hours per sidereal earth day
+static constexpr double HoursPerDay = 23.9344696;
+
 /// @brief Center of the transition from Ice Giant to Gas Giant, in Jovian mass.
 static constexpr double IceGiantTransition = 0.414;
 
@@ -206,8 +209,8 @@ static constexpr double SolarMassInGrams = 1.989e33;
 /// From Chen, et al. 2017.  Original value is 2.04 +0.66/-0.59 M(Earth).
 static constexpr double RockyTransition = 2.04 / SolarMassToEarthMass;
 
-/// @brief Convert seconds -> years.  Currently uses 24.0 hours per day.
-static constexpr double YearsPerSecond = 1.0 / (SecondsPerHour * 24.0 * DaysPerYear);
+/// @brief Convert seconds -> years.
+static constexpr double YearsPerSecond = 1.0 / (SecondsPerHour * HoursPerDay * DaysPerYear);
 
 /// @brief Weight of molecular hydrogen.
 static constexpr double Weight_MolecularHydrogen = 2.0;

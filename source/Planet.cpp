@@ -289,7 +289,7 @@ void Planet::calculateDayLength()
     // TODO: This doesn't work for moons
 
     const double massGr = totalMass * SolarMassInGrams;
-    const double yearHours = orbitalPeriod * 24.0;
+    const double yearHours = orbitalPeriod * HoursPerDay;
 
     // TODO: Where does this magic number come from?  How is it derived, and can it be
     // computed numerically instead of being treated as a hard-coded value?
@@ -554,7 +554,7 @@ void Planet::calculateSurfaceConditions(bool initialize, GenerationState* state)
     if (highTemp >= boilingPoint
         && !initialize
         // Not sure why the integer conversions here, other than to avoid floating point vagaries
-        && !((int)day == (int)(orbitalPeriod * 24.0) || resonant))
+        && !((int)day == (int)(orbitalPeriod * HoursPerDay) || resonant))
     {
         // Boil-off
         hydrosphere = 0.0f;
@@ -1055,7 +1055,7 @@ const std::string& Planet::PlanetTypeString(PlanetType type)
 void Planet::setTemperatureRange()
 {
     const float maxT = meanSurfaceTemp + sqrtf(meanSurfaceTemp) * 10.0f;
-    const float minT = meanSurfaceTemp / sqrtf(day + 24.0f);
+    const float minT = meanSurfaceTemp / sqrtf(day + float(HoursPerDay));
 
     const float pressmod = 1.0f / sqrtf(1.0f + 20.0f * surfacePress * BarPerMillibar);
     const float ppmod = 1.0f / sqrtf(10.0f + 5.0f * surfacePress * BarPerMillibar);

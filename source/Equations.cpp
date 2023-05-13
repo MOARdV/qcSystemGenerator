@@ -44,24 +44,14 @@ double CriticalLimit(double sma, double eccentricity, double stellarLuminosity)
 //----------------------------------------------------------------------------
 double GasLife(double molecularMass, const Planet* planet)
 {
-    //long double v = rms_vel(molecular_weight, planet->exospheric_temp);
     const double v = RMSVelocity(molecularMass, planet->exosphereTemperature()) * CmPerM;
 
-    //long double g = planet->surf_grav * EARTH_ACCELERATION;
     const double g = planet->surfaceAcceleration() * CmPerM;
 
-    //long double r = (planet->radius * CM_PER_KM);
     const double r = planet->r() * CmPerKm;
 
-    //long double t = (pow3(v) / (2.0 * pow2(g) * r)) * exp((3.0 * g * r) / pow2(v));
     const double t = (pow(v, 3.0) / (2.0 * pow(g, 2.0) * r)) * exp((3.0 * g * r) / pow(v, 2.0));
 
-    //long double years = t / (SECONDS_PER_HOUR * 24.0 * DAYS_IN_A_YEAR);
-
-    //if (years > 2.0E10)
-    //    years = INCREDIBLY_LARGE_NUMBER;
-
-    //return years;
     return t * YearsPerSecond;
 }
 
