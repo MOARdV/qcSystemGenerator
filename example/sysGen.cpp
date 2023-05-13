@@ -22,12 +22,14 @@
 * DEALINGS IN THE SOFTWARE.
 *
 ****************************************************************************/
-#include "System.h"
+#include <qcSysGen/System.h>
 
-#include "GenerationState.h"
+#include <qcSysGen/GenerationState.h>
 
 #include <assert.h>
 #include <string>
+
+using namespace qcSystemGenerator;
 
 //----------------------------------------------------------------------------
 std::string RomanNumeral(int value)

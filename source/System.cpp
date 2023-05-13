@@ -22,11 +22,14 @@
 * DEALINGS IN THE SOFTWARE.
 *
 ****************************************************************************/
-#include "System.h"
+#include <qcSysGen/System.h>
 
-#include "GenerationState.h"
+#include <qcSysGen/GenerationState.h>
 
 #include <time.h>
+
+namespace qcSystemGenerator
+{
 
 //----------------------------------------------------------------------------
 System::System() :
@@ -218,4 +221,6 @@ void System::evaluatePlanets(GenerationState* state)
         ++planet;
         ++number;
     }
+}
+
 }

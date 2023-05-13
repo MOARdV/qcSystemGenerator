@@ -26,6 +26,9 @@
 
 #include <cstdint>
 
+namespace qcSystemGenerator
+{
+
 /// @brief Configuration / override parameter structure.
 ///
 /// When this structure is instantiated, all values are set to defaults.  Any of them may be overridden prior to calling
@@ -92,3 +95,5 @@ struct Config
     /// @brief When true, axial tilt is randomly computed; when false, all planets and moons have a 0 tilt.
     bool randomAxialTilt;
 };
+
+}

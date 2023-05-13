@@ -32,6 +32,9 @@
 
 #include <forward_list>
 
+namespace qcSystemGenerator
+{
+
 /// @brief Represents a band of dust during accrual.
 struct Dust
 {
@@ -322,3 +325,5 @@ class GenerationState
     /// @param protoplanet The protoplanet that is collecting dust and gas.
     void updateDustLanes(const Protoplanet& protoplanet);
 };
+
+}

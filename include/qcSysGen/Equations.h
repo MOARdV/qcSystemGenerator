@@ -28,6 +28,9 @@
 
 #include <math.h>
 
+namespace qcSystemGenerator
+{
+
 class Planet;
 class Star;
 
@@ -216,3 +219,5 @@ inline double RMSVelocity(double molecularWeight, double exosphereTemperature)
 /// @param radius Radius of the body, in km.
 /// @return Density of the body, in g/cc.
 double VolumeDensity(double mass, double radius);
+
+}

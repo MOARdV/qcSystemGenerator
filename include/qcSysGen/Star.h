@@ -28,6 +28,9 @@
 
 #include <string>
 
+namespace qcSystemGenerator
+{
+
 struct Config;
 class GenerationState;
 
@@ -319,3 +322,5 @@ class Star
     /// @brief Outer planetary formation limit, in AU.  Recorded in case the caller specified an override value.
     double outerPlanetaryR;
 };
+
+}

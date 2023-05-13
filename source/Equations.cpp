@@ -22,10 +22,13 @@
 * DEALINGS IN THE SOFTWARE.
 *
 ****************************************************************************/
-#include "Equations.h"
+#include <qcSysGen/Equations.h>
 
-#include "Planet.h"
-#include "Star.h"
+#include <qcSysGen/Planet.h>
+#include <qcSysGen/Star.h>
+
+namespace qcSystemGenerator
+{
 
 //----------------------------------------------------------------------------
 double CriticalLimit(double sma, double eccentricity, double stellarLuminosity)
@@ -185,4 +188,6 @@ double VolumeDensity(double mass, double radius)
     const double volume = (4.0 * PI * pow((radius * CmPerKm), 3.0)) / 3.0;
 
     return (mass * SolarMassInGrams) / volume;
+}
+
 }

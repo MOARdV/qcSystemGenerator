@@ -22,12 +22,12 @@
 * DEALINGS IN THE SOFTWARE.
 *
 ****************************************************************************/
-#include "Planet.h"
+#include <qcSysGen/Planet.h>
 
-#include "Config.h"
-#include "Equations.h"
-#include "GenerationState.h"
-#include "Star.h"
+#include <qcSysGen/Config.h>
+#include <qcSysGen/Equations.h>
+#include <qcSysGen/GenerationState.h>
+#include <qcSysGen/Star.h>
 
 #include <assert.h>
 #include <numeric>
@@ -37,7 +37,7 @@ namespace
 
 struct ChemicalTable
 {
-    Gas chemical;
+    qcSystemGenerator::Gas chemical;
     float atomicWeight; //!< Atomic weight of the atom / molecule
     float meltingPoint; //!< Melting point, in Kelvin.
     float boilingPoint; //!< Boiling point, in Kelvin.
@@ -49,35 +49,24 @@ struct ChemicalTable
     float maxIPP; //!< Maximum inspired partial pressure
 };
 
+using qcSystemGenerator::MbPerMmhg;
+
 /// @brief Table of atmospheric gases gleaned from Burrows 2006.  Max IPP values imported from Dole 1969.
 static constexpr ChemicalTable gases[] =
 {
-    //{AN_H,  "H",  "H<SUB><SMALL>2</SMALL></SUB>",	 "Hydrogen",         1.0079,  14.06,  20.40,  8.99e-05,  0.00125893,  27925.4,       1,		0.0},
-        { Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
-        //{AN_HE, "He", "He",							 "Helium",           4.0026,   3.46,   4.20,  0.0001787, 7.94328e-09, 2722.7,        0,		MAX_HE_IPP},
-            { Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
-            //{AN_N,  "N",  "N<SUB><SMALL>2</SMALL></SUB>",	 "Nitrogen",        14.0067,  63.34,  77.40,  0.0012506, 1.99526e-05, 3.13329,       0,		MAX_N2_IPP},
-                { Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
-                //{AN_O,  "O",  "O<SUB><SMALL>2</SMALL></SUB>",	 "Oxygen",          15.9994,  54.80,  90.20,  0.001429,  0.501187,    23.8232,       10,	MAX_O2_IPP},
-                    { Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
-                    //{AN_NE, "Ne", "Ne",							 "Neon",            20.1700,  24.53,  27.10,  0.0009,    5.01187e-09, 3.4435e-5,     0,		MAX_NE_IPP},
-                        { Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
-                        //{AN_AR, "Ar", "Ar",							 "Argon",           39.9480,  84.00,  87.30,  0.0017824, 3.16228e-06, 0.100925,      0,		MAX_AR_IPP},
-                            { Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
-                            //{AN_KR, "Kr", "Kr",							 "Krypton",         83.8000, 116.60, 119.70,  0.003708,  1e-10,       4.4978e-05,    0,		MAX_KR_IPP},
-                                { Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
-                                //{AN_XE, "Xe", "Xe",							 "Xenon",          131.3000, 161.30, 165.00,  0.00588,   3.16228e-11, 4.69894e-06,   0,		MAX_XE_IPP},
-                                    { Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
-                                    //{AN_NH3, "NH3", "NH<SUB><SMALL>3</SMALL></SUB>", "Ammonia",       17.0000, 195.46, 239.66,  0.001,     0.002,       0.0001,        1,		MAX_NH3_IPP},
-                                        { Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
-                                        //{AN_H2O, "H2O", "H<SUB><SMALL>2</SMALL></SUB>O", "Water",         18.0000, 273.16, 373.16,  1.000,     0.03,        0.001,         0,		0.0},
-                                            { Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
-                                            //{AN_CO2, "CO2", "CO<SUB><SMALL>2</SMALL></SUB>", "CarbonDioxide", 44.0000, 194.66, 194.66,  0.001,     0.01,        0.0005,        0,		MAX_CO2_IPP},
-                                                { Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
-                                                //{AN_O3,   "O3", "O<SUB><SMALL>3</SMALL></SUB>",  "Ozone",         48.0000,  80.16, 161.16,  0.001,     0.001,       0.000001,      2,		MAX_O3_IPP},
-                                                    { Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
-                                                    //{AN_CH4, "CH4", "CH<SUB><SMALL>4</SMALL></SUB>", "Methane",       16.0000,  90.16, 109.16,  0.010,     0.005,       0.0001,        1,		MAX_CH4_IPP},
-                                                        { Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
+        { qcSystemGenerator::Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
+        { qcSystemGenerator::Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
+        { qcSystemGenerator::Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
+        { qcSystemGenerator::Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
 };
 static constexpr int gasesCount = _countof(gases);
 
@@ -92,7 +81,7 @@ static constexpr int gasesCount = _countof(gases);
 /// @return Boiling point of water, in Kelvin.  0 if there is no atmospheric pressure.
 float BoilingPoint(float surfacePressureMb)
 {
-    const double surfacePressureBars = surfacePressureMb * BarPerMillibar;
+    const double surfacePressureBars = surfacePressureMb * qcSystemGenerator::BarPerMillibar;
 
     // TODO: Where do the magic numbers come from?
     return static_cast<float>(1.0 / ((log(surfacePressureBars) / -5050.5) + (1.0 / 373.0)));
@@ -128,6 +117,7 @@ float Opacity(float minMolecularWeight, float surfacePressure)
         opticalDepth = opticalDepth + 0.05f;
     }
 
+    using qcSystemGenerator::EarthSurfacePressure;
     if (surfacePressure >= (70.0f * EarthSurfacePressure))
     {
         opticalDepth = opticalDepth * 8.333f;
@@ -177,6 +167,9 @@ inline float soft(float v, float max, float min)
 }
 
 }
+
+namespace qcSystemGenerator
+{
 
 //----------------------------------------------------------------------------
 Planet::Planet() :
@@ -372,7 +365,7 @@ void Planet::calculateEarthSimilarity()
     if (!atmosphere.empty())
     {
         // TODO: Refine this if I can find guidance on how the exponents were derived.
-        const auto o2 = std::find_if(atmosphere.begin(), atmosphere.end(), [](const AtmosphereComponent& c) { return c.gas == Gas::Oxygen; });
+        const auto o2 = std::find_if(atmosphere.begin(), atmosphere.end(), [](const AtmosphereComponent& c) { return c.gas == qcSystemGenerator::Gas::Oxygen; });
         const float ppo = surfacePress * ((o2 == atmosphere.end()) ? 0.0f : o2->fraction);
         // Partial pressure of oxygen.  Exponent is still work-in-progress.
         static constexpr float PpoWeight = 2.5f;
@@ -417,12 +410,12 @@ void Planet::calculateGases()
 
                 // TODO: Store 1.0f / (1.0f + reactivity) in the structures, instead of computing it every run
     //            if (strcmp(gases[i].symbol, "Ar") == 0)
-                if (gases[i].chemical == Gas::Argon)
+                if (gases[i].chemical == qcSystemGenerator::Gas::Argon)
                 {
                     react = 0.15f * static_cast<float>(star->age() / 4.0e9);
                 }
                 //            else if (strcmp(gases[i].symbol, "He") == 0)
-                else if (gases[i].chemical == Gas::Helium)
+                else if (gases[i].chemical == qcSystemGenerator::Gas::Helium)
                 {
                     abund *= 0.001f + static_cast<float>(gasMass / totalMass);
                     pres2 = (0.75f + pressure);
@@ -432,7 +425,7 @@ void Planet::calculateGases()
                 //                strcmp(gases[i].symbol, "O2") == 0) &&
                 //                sun->age > 2e9 &&
                 //                planet->surf_temp > 270 && planet->surf_temp < 400)
-                else if (gases[i].chemical == Gas::Oxygen &&
+                else if (gases[i].chemical == qcSystemGenerator::Gas::Oxygen &&
                          star->age() > 2.0e9 &&
                          // TODO: Where do these come from?
                          meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
@@ -444,7 +437,7 @@ void Planet::calculateGases()
                 //            else if (strcmp(gases[i].symbol, "CO2") == 0 &&
                 //                sun->age > 2e9 &&
                 //                planet->surf_temp > 270 && planet->surf_temp < 400)
-                else if (gases[i].chemical == Gas::CarbonDioxide &&
+                else if (gases[i].chemical == qcSystemGenerator::Gas::CarbonDioxide &&
                          star->age() > 2.0e9 &&
                          meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
                 {
@@ -982,31 +975,31 @@ std::string Planet::GasString(Gas gas)
 {
     switch (gas)
     {
-        case Gas::Hydrogen:
+        case qcSystemGenerator::Gas::Hydrogen:
             return std::string("Hydrogen");
-        case Gas::Helium:
+        case qcSystemGenerator::Gas::Helium:
             return std::string("Helium");
-        case Gas::Nitrogen:
+        case qcSystemGenerator::Gas::Nitrogen:
             return std::string("Nitrogen");
-        case Gas::Oxygen:
+        case qcSystemGenerator::Gas::Oxygen:
             return std::string("Oxygen");
-        case Gas::Neon:
+        case qcSystemGenerator::Gas::Neon:
             return std::string("Neon");
-        case Gas::Argon:
+        case qcSystemGenerator::Gas::Argon:
             return std::string("Argon");
-        case Gas::Krypton:
+        case qcSystemGenerator::Gas::Krypton:
             return std::string("Krypton");
-        case Gas::Xenon:
+        case qcSystemGenerator::Gas::Xenon:
             return std::string("Xenon");
-        case Gas::Ammonia:
+        case qcSystemGenerator::Gas::Ammonia:
             return std::string("Ammonia");
-        case Gas::Water:
+        case qcSystemGenerator::Gas::Water:
             return std::string("Water Vapor");
-        case Gas::CarbonDioxide:
+        case qcSystemGenerator::Gas::CarbonDioxide:
             return std::string("Carbon Dioxide");
-        case Gas::Ozone:
+        case qcSystemGenerator::Gas::Ozone:
             return std::string("Ozone");
-        case Gas::Methane:
+        case qcSystemGenerator::Gas::Methane:
             return std::string("Methane");
         default:
             return std::string("Unknown");
@@ -1162,4 +1155,6 @@ double Planet::volatileInventory(GenerationState* state) const
     {
         return 0.0;
     }
+}
+
 }

@@ -30,6 +30,9 @@
 #include <string>
 #include <vector>
 
+namespace qcSystemGenerator
+{
+
 struct Config;
 class GenerationState;
 class Star;
@@ -455,3 +458,5 @@ class Planet
 
 /// @brief Convenience type definition for std::forward_list<Planet>.
 typedef std::forward_list<Planet> PlanetList;
+
+}

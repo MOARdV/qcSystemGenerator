@@ -22,12 +22,12 @@
 * DEALINGS IN THE SOFTWARE.
 *
 ****************************************************************************/
-#include "Star.h"
+#include <qcSysGen/Star.h>
 
-#include "Config.h"
-#include "Consts.h"
-#include "Equations.h"
-#include "GenerationState.h"
+#include <qcSysGen/Config.h>
+#include <qcSysGen/Consts.h>
+#include <qcSysGen/Equations.h>
+#include <qcSysGen/GenerationState.h>
 
 #include <algorithm>
 #include <math.h>
@@ -96,6 +96,9 @@ static constexpr StellarClass stellarClass[] =
 static constexpr int stellarClassCount = _countof(stellarClass);
 
 }
+
+namespace qcSystemGenerator
+{
 
 //----------------------------------------------------------------------------
 Star::Star(float mass, double random01) :
@@ -180,4 +183,6 @@ std::string Star::stellarClass() const
     stellarClass(out, sizeof(out));
 
     return std::string(out);
+}
+
 }

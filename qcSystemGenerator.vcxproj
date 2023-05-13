@@ -45,6 +45,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)/include/;$(IncludePath)</IncludePath>
+    <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)/include/;$(IncludePath)</IncludePath>
@@ -60,6 +61,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -78,20 +82,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\Config.h" />
-    <ClInclude Include="include\Consts.h" />
-    <ClInclude Include="include\Equations.h" />
-    <ClInclude Include="include\GenerationState.h" />
-    <ClInclude Include="include\Planet.h" />
-    <ClInclude Include="include\Star.h" />
-    <ClInclude Include="include\System.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="source\Equations.cpp" />
     <ClCompile Include="source\GenerationState.cpp" />
     <ClCompile Include="source\Planet.cpp" />
     <ClCompile Include="source\Star.cpp" />
     <ClCompile Include="source\System.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\qcSysGen\Config.h" />
+    <ClInclude Include="include\qcSysGen\Consts.h" />
+    <ClInclude Include="include\qcSysGen\Equations.h" />
+    <ClInclude Include="include\qcSysGen\GenerationState.h" />
+    <ClInclude Include="include\qcSysGen\Planet.h" />
+    <ClInclude Include="include\qcSysGen\Star.h" />
+    <ClInclude Include="include\qcSysGen\System.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

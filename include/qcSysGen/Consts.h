@@ -26,6 +26,9 @@
 
 #include <cstdint>
 
+namespace qcSystemGenerator
+{
+
 // Non-specific constants
 // 
 // TODO: Document where these values come from.
@@ -217,3 +220,5 @@ static constexpr double Weight_WaterVapor = 18.0;
 
 /// @brief Weight of molecular nitrogen.
 static constexpr double Weight_MolecularNitrogen = 28.0;
+
+}

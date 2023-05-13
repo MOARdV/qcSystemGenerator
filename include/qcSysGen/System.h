@@ -31,6 +31,9 @@
 
 #include <random>
 
+namespace qcSystemGenerator
+{
+
 class GenerationState;
 
 /// @brief Defines an optional seed value for generating a solar system.
@@ -167,3 +170,5 @@ class System
     /// @param state The GenerationState
     void evaluatePlanets(GenerationState* state);
 };
+
+}

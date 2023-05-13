@@ -23,12 +23,15 @@
 *
 ****************************************************************************/
 
-#include "GenerationState.h"
+#include <qcSysGen/GenerationState.h>
 
-#include "Equations.h"
-#include "Planet.h"
+#include <qcSysGen/Equations.h>
+#include <qcSysGen/Planet.h>
 
 #include <assert.h>
+
+namespace qcSystemGenerator
+{
 
 //----------------------------------------------------------------------------
 GenerationState::GenerationState(const Config* config) :
@@ -403,4 +406,6 @@ void GenerationState::updateDustLanes(const Protoplanet& protoplanet)
             ++currentBand;
         }
     }
+}
+
 }
