@@ -269,8 +269,8 @@ class Star
 
     /// @brief Return a string containing the stellar class of the star,
     /// eg "G2V".
-    /// @return The stellar class
-    std::string stellarClass() const;
+    /// @param out The string that will receive the stellar class text.
+    void stellarClass(std::string& out) const;
 
     /// @brief Classifies the radius into one of the orbital zones
     /// @param radius The distance from the star, in AU.

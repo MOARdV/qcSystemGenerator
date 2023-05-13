@@ -176,13 +176,13 @@ void Star::stellarClass(char* output, size_t sizeofOutput) const
 }
 
 //----------------------------------------------------------------------------
-std::string Star::stellarClass() const
+void Star::stellarClass(std::string& out) const
 {
     // Yes, I'm taking the lazy way
-    char out[4];
-    stellarClass(out, sizeof(out));
+    char outchar[4];
+    stellarClass(outchar, sizeof(outchar));
 
-    return std::string(out);
+    out = std::string(outchar);
 }
 
 }

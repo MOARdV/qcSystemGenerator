@@ -59,7 +59,7 @@ enum class Gas
 
 /// @brief Enumeration of planet types
 ///
-/// @note If there are changes here, don't forget to update Planet::PlanetTypeStr().
+/// @note If there are changes here, don't forget to update Planet::PlanetTypeString().
 enum class PlanetType
 {
     Unknown, //!< Undetermined type
@@ -193,7 +193,7 @@ class Planet
     /// @brief Return a string naming the Gas
     /// @param gas The Gas to name
     /// @return The corresponding string
-    static std::string GasString(Gas gas);
+    static const std::string& GasString(Gas gas);
 
     /// @brief Returns the percentage of the surface covered by liquid water
     /// @return A value in the range [0, 1].
@@ -230,7 +230,7 @@ class Planet
     /// @brief Returns a string for the PlanetType.
     /// @param type The PlanetType that we want a name for.
     /// @return The string corresponding th the planet type.
-    static std::string PlanetTypeString(PlanetType type);
+    static const std::string& PlanetTypeString(PlanetType type);
 
     /// @brief Radius of the planet.
     /// @return Radius, in km.

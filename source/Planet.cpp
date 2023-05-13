@@ -971,39 +971,26 @@ void Planet::exchange(Planet& p)
 }
 
 //----------------------------------------------------------------------------
-std::string Planet::GasString(Gas gas)
+const std::string& Planet::GasString(Gas gas)
 {
-    switch (gas)
+    static const std::string gases[] =
     {
-        case qcSystemGenerator::Gas::Hydrogen:
-            return std::string("Hydrogen");
-        case qcSystemGenerator::Gas::Helium:
-            return std::string("Helium");
-        case qcSystemGenerator::Gas::Nitrogen:
-            return std::string("Nitrogen");
-        case qcSystemGenerator::Gas::Oxygen:
-            return std::string("Oxygen");
-        case qcSystemGenerator::Gas::Neon:
-            return std::string("Neon");
-        case qcSystemGenerator::Gas::Argon:
-            return std::string("Argon");
-        case qcSystemGenerator::Gas::Krypton:
-            return std::string("Krypton");
-        case qcSystemGenerator::Gas::Xenon:
-            return std::string("Xenon");
-        case qcSystemGenerator::Gas::Ammonia:
-            return std::string("Ammonia");
-        case qcSystemGenerator::Gas::Water:
-            return std::string("Water Vapor");
-        case qcSystemGenerator::Gas::CarbonDioxide:
-            return std::string("Carbon Dioxide");
-        case qcSystemGenerator::Gas::Ozone:
-            return std::string("Ozone");
-        case qcSystemGenerator::Gas::Methane:
-            return std::string("Methane");
-        default:
-            return std::string("Unknown");
-    }
+        "Hydrogen",
+        "Helium"
+        "Nitrogen",
+        "Oxygen",
+        "Neon",
+        "Argon",
+        "Krypton",
+        "Xenon",
+        "Ammonia",
+        "Water Vapor",
+        "Carbon Dioxide",
+        "Ozone",
+        "Methane"
+    };
+
+    return gases[uint32_t(gas)];
 }
 
 //----------------------------------------------------------------------------
@@ -1045,41 +1032,23 @@ void Planet::iterateSurfaceConditions(GenerationState* state)
 }
 
 //----------------------------------------------------------------------------
-std::string Planet::PlanetTypeString(PlanetType type)
+const std::string& Planet::PlanetTypeString(PlanetType type)
 {
-    switch (type)
+    static const std::string planetType[] =
     {
-        case PlanetType::Rocky:
-            return std::string("Rocky");
+        "Unknown",
+        "Rocky",
+        "AsteroidBelt",
+        "IcePlanet",
+        "Terrestrial",
+        "Ocean",
+        "Gaseous",
+        "IceGiant",
+        "GasGiant",
+        "BrownDwarf"
+    };
 
-        case PlanetType::AsteroidBelt:
-            return std::string("Asteroids");
-
-        case PlanetType::IcePlanet:
-            return std::string("Ice Planet");
-
-        case PlanetType::Terrestrial:
-            return std::string("Terrestrial");
-
-        case PlanetType::Ocean:
-            return std::string("Ocean");
-
-        case PlanetType::Gaseous:
-            return std::string("Gaseous");
-
-        case PlanetType::IceGiant:
-            return std::string("Ice Giant");
-
-        case PlanetType::GasGiant:
-            return std::string("Gas Giant");
-
-        case PlanetType::BrownDwarf:
-            return std::string("Brown Dwarf");
-
-        case PlanetType::Unknown:
-        default:
-            return std::string("Unknown");
-    }
+    return planetType[uint32_t(type)];
 }
 
 //----------------------------------------------------------------------------
