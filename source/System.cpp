@@ -91,6 +91,7 @@ void System::create(const Config* appConfig, const std::vector<PlanetisimalSeed>
     GenerationState state(&config);
 
     centralStar.init(&config, &state);
+    ++protoplanetsGenerated;
 
     state.finalize(&centralStar);
 
@@ -120,7 +121,6 @@ void System::create(const Config* appConfig, const std::vector<PlanetisimalSeed>
 
         // Place the ideal habitable world position.
         bodeSeed.emplace_back(PlanetisimalSeed(A * state.randomNear(B, intervalStdDev), state.randomEccentricity()));
-        ++protoplanetsGenerated;
 
         // Iterate closer to the star.
         const float innerLimit = static_cast<float>(centralStar.innerPlanetaryLimit());
@@ -132,7 +132,6 @@ void System::create(const Config* appConfig, const std::vector<PlanetisimalSeed>
 
             f -= 1.0f;
             sma = A * powf(BodeProgression, f) * state.randomNear(B, intervalStdDev);
-            ++protoplanetsGenerated;
         }
 
         // Iterate away from the star
@@ -145,7 +144,6 @@ void System::create(const Config* appConfig, const std::vector<PlanetisimalSeed>
 
             f += 1.0f;
             sma = A * powf(BodeProgression, f) * state.randomNear(B, intervalStdDev);
-            ++protoplanetsGenerated;
         }
 
         // Randomize the order of the seeds
