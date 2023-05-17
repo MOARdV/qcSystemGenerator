@@ -204,6 +204,9 @@ static constexpr double SolarMassToJovianMass = 1.0 / 1047.0;
 /// @brief Mass of Sol, in grams.
 static constexpr double SolarMassInGrams = 1.989e33;
 
+/// @brief Radius of Sol, in km.
+static constexpr double SolarRadiusKm = 695700.0;
+
 /// @brief Center of the transition point from rocky world to gaseous world, in Solar masses.
 ///
 /// From Chen, et al. 2017.  Original value is 2.04 +0.66/-0.59 M(Earth).

@@ -250,6 +250,13 @@ class Star
         return sqrtLum * OuterZone2Scalar;
     }
 
+    /// @brief Returns a very rough guesstimate of the radius of the star based on mass.
+    /// @return 
+    double radius() const
+    {
+        return pow(stellarMass, 0.78) * SolarRadiusKm;
+    }
+
     /// @brief Returns the radius that marks the snow line.
     /// @return Snow line radius, in AU.
     double snowLine() const
