@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -113,7 +113,7 @@ double MinimumMolecularWeight(const Planet* planet, const Star* star)
 {
     // We will search through various molecular masses to find the one that is
     // closest to the age of the planetary system.  We initialize the search to
-    // the molecular limit of the planet, and check it's gas life.
+    // the molecular limit of the planet, and check its gas life.
     const double goalAge = star->age();
 
     double molecularMass = MolecularLimit(planet->escapeVelocity(), planet->exosphereTemperature());
