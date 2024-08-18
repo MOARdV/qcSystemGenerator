@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -51,6 +51,8 @@ GenerationState::GenerationState(const Config* config) :
     planetList.clear();
 
     doMoons = config->generateMoons;
+
+    callback = config->callback;
 }
 
 //----------------------------------------------------------------------------
@@ -129,7 +131,12 @@ void GenerationState::coalescePlanetisimals(Protoplanet& protoplanet)
             e2 = std::max(0.0, 1.0 - pow(e2, 2.0));
             if (e2 >= 1.0)
             {
-                printf("Planetoid collision should have resulted in planetoid escape (eccentricity = %lg)\n", sqrt(e2));
+                if (callback)
+                {
+                    char text[256];
+                    sprintf_s(text, "Planetoid collision should have resulted in planetoid escape (eccentricity = %lg)\n", sqrt(e2));
+                    callback(text);
+                }
                 e2 = 0.0;
             }
 

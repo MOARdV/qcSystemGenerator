@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -650,6 +650,8 @@ float Planet::effectiveTemperature(float albedo) const
 //----------------------------------------------------------------------------
 void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetNumber, const Config* config, GenerationState* state)
 {
+    char text[256]; // sprintf buffer
+
     star = centralStar;
     planetNo = planetNumber;
     //atmosphere = nullptr;
@@ -689,9 +691,11 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         type = (sufficientMolecularRetention && sufficientOverallMass) ? PlanetType::Gaseous : PlanetType::Rocky;
         if (type == PlanetType::Rocky)
         {
-            printf("Gaseous planet demoted to rocky: %s molecular retention and %s mass\n",
-                   sufficientMolecularRetention ? "sufficient" : "inadequate",
-                   sufficientOverallMass ? "sufficient" : "inadequate");
+            sprintf_s(text, "Gaseous planet demoted to rocky: %s molecular retention and %s mass\n",
+                      sufficientMolecularRetention ? "sufficient" : "inadequate",
+                      sufficientOverallMass ? "sufficient" : "inadequate");
+
+            state->emitCallback(text);
         }
     }
     else
@@ -713,9 +717,10 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         // If this is a failed gaseous planet (too low of a gas mass ratio, or too low of a gas retention), account for H2 and He loss.
         if ((gasMass / totalMass) > IcePlanetThreshold && totalMass > RockyTransition)
         {
-            printf("Re-evaluating rocky planet -> gas dwarf.  dustMass %s, gasRatio = %.3lf\n",
-                   (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())) ? "critical" : "sub-critical",
-                   gasMass / totalMass);
+            sprintf_s(text, "Re-evaluating rocky planet -> gas dwarf.  dustMass %s, gasRatio = %.3lf\n",
+                      (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())) ? "critical" : "sub-critical",
+                      gasMass / totalMass);
+            state->emitCallback(text);
 
             const double h2Mass = gasMass * 0.85;
             const double h2Life = GasLife(Weight_MolecularHydrogen, this);
@@ -788,7 +793,8 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
             // Rocky / Gaseous = 2.04 (+0.66/-0.59)x M(Earth)
             if (totalMass < RockyTransition)
             {
-                printf("! Ice Giant found with M(Earth) = %.2lf (floor should be 1.45 - 2.70)\n", totalMass * SolarMassToEarthMass);
+                sprintf_s(text, "! Ice Giant found with M(Earth) = %.2lf (floor should be 1.45 - 2.70)\n", totalMass * SolarMassToEarthMass);
+                state->emitCallback(text);
             }
         }
 
@@ -933,7 +939,8 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
             else
             {
                 // A moon can't form here.  What do I do with it?
-                printf("! A moon tried to form within the Roche limit!\n");
+                sprintf_s(text, "! A moon tried to form within the Roche limit!\n");
+                state->emitCallback(text);
                 m.semiMajorAxis = 0.0;
                 m.eccentricity = 0.0f;
             }
@@ -976,7 +983,7 @@ const std::string& Planet::GasString(Gas gas)
     static const std::string gases[] =
     {
         "Hydrogen",
-        "Helium"
+        "Helium",
         "Nitrogen",
         "Oxygen",
         "Neon",
@@ -1027,7 +1034,9 @@ void Planet::iterateSurfaceConditions(GenerationState* state)
     }
     if (!converged)
     {
-        printf("!!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemp));
+        char text[256];
+        sprintf_s(text, "!!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemp));
+        state->emitCallback(text);
     }
 }
 

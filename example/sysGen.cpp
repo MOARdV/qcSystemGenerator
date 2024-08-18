@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -30,6 +30,12 @@
 #include <string>
 
 using namespace qcSystemGenerator;
+
+//----------------------------------------------------------------------------
+void SG_Callback(const char* text)
+{
+    printf(text);
+}
 
 //----------------------------------------------------------------------------
 std::string RomanNumeral(int value)
@@ -87,8 +93,8 @@ char AsciiArtType(PlanetType type)
 
         case PlanetType::AsteroidBelt:
             return ':';
-        //case PlanetType::Goldilocks:
-        //    return 'G';
+            //case PlanetType::Goldilocks:
+            //    return 'G';
         default:
         case PlanetType::Rocky:
             return '.';
@@ -214,7 +220,7 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
                     }
                     else if (showPPM)
                     {
-                        sprintf_s(buffer, "%3.0fppm", gas->fraction*1000000.0f);
+                        sprintf_s(buffer, "%3.0fppm", gas->fraction * 1000000.0f);
                         planetInfo.append("\t\t").append(Planet::GasString(gas->gas)).append(": ").append(buffer);
                         puts(planetInfo.c_str());
                         planetInfo.clear();
@@ -266,6 +272,7 @@ int main(int, char**)
     config.generateBodeSeeds = true;
     config.generateMoons = true;
     config.computeGases = true;
+    config.callback = SG_Callback;
 
     system.create(&config);
 
@@ -320,21 +327,21 @@ int main(int, char**)
         if (pl.sizeMoon() > 0)
         {
             std::for_each(pl.beginMoon(), pl.endMoon(), [&](const auto& m)
-                {
-                    std::string moonInfo(MoonOrdinal(pl.ordinal(), m.ordinal()));
-                    moonInfo.append(2, ' ').append(1, AsciiArtType(m.planetType())).append(2, ' ');
-                    moonInfo.append(km(m.sma()));
-                    moonInfo.append(Radius(m.r()));
-                    if (!m.isGaseous())
-                    {
-                        moonInfo.append(MeanSurfaceConditions(m.surfaceTemperature() + KelvinToCelsius, m.surfacePressure()));
-                        char esi[16];
-                        sprintf_s(esi, "esi: %4.2f", m.esi());
-                        moonInfo.append(esi);
-                    }
+                          {
+                              std::string moonInfo(MoonOrdinal(pl.ordinal(), m.ordinal()));
+                              moonInfo.append(2, ' ').append(1, AsciiArtType(m.planetType())).append(2, ' ');
+                              moonInfo.append(km(m.sma()));
+                              moonInfo.append(Radius(m.r()));
+                              if (!m.isGaseous())
+                              {
+                                  moonInfo.append(MeanSurfaceConditions(m.surfaceTemperature() + KelvinToCelsius, m.surfacePressure()));
+                                  char esi[16];
+                                  sprintf_s(esi, "esi: %4.2f", m.esi());
+                                  moonInfo.append(esi);
+                              }
 
-                    puts(moonInfo.c_str());
-                });
+                              puts(moonInfo.c_str());
+                          });
         }
     }
 
@@ -346,10 +353,10 @@ int main(int, char**)
         if (pl.sizeMoon() > 0)
         {
             std::for_each(pl.beginMoon(), pl.endMoon(), [&](const auto& m)
-                {
-                    puts("");
-                    SpewPlanet(m, pl.ordinal());
-                });
+                          {
+                              puts("");
+                              SpewPlanet(m, pl.ordinal());
+                          });
         }
     }
 
