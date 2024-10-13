@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -77,7 +77,7 @@ double GasLife(double molecularMass, const Planet* planet);
 /// @return The interpolant in the range [0.0, 1.0].
 template <class T_> inline T_ InverseLerp(T_ value, T_ lower, T_ upper)
 {
-    return (value < lower) ? (T_)0 : ((value > upper) ? (T_)1 : ((value - lower) / (upper - lower)));
+    return (value <= lower) ? (T_)0 : ((value >= upper) ? (T_)1 : ((value - lower) / (upper - lower)));
 }
 
 //----------------------------------------------------------------------------
@@ -90,7 +90,7 @@ template <class T_> inline T_ InverseLerp(T_ value, T_ lower, T_ upper)
 /// @return Value in the range [lower, upper].
 template <class T_> inline T_ Lerp(T_ interpolant, T_ lower, T_ upper)
 {
-    return (interpolant < lower) ? lower : ((interpolant > upper) ? upper : (lower + (upper - lower) * interpolant));
+    return (interpolant <= lower) ? lower : ((interpolant >= upper) ? upper : (lower + (upper - lower) * interpolant));
 }
 
 //----------------------------------------------------------------------------
