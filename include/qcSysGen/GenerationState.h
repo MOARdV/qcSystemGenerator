@@ -232,7 +232,7 @@ class GenerationState
     /// @return An integer in the range [lowerBound, upperBound].
     template<class T_> T_ randomInt(T_ lowerBound, T_ upperBound)
     {
-        std::uniform_int<T_> rng(lowerBound, upperBound);
+        std::uniform_int_distribution<T_> rng(lowerBound, upperBound);
         return rng(mt);
     }
 
@@ -269,7 +269,7 @@ class GenerationState
     /// @return A value in the prescribed range.
     template<class T_> T_ randomUniform(T_ lowerBound, T_ upperBound)
     {
-        std::uniform_real<T_> rng(lowerBound, upperBound);
+        std::uniform_real_distribution<T_> rng(lowerBound, upperBound);
         return rng(mt);
     }
 
