@@ -26,7 +26,10 @@
 
 #include <cstdint>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 /// @brief Configuration / override parameter structure.
@@ -107,4 +110,5 @@ struct Config
     bool randomAxialTilt;
 };
 
+}
 }

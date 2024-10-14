@@ -32,7 +32,10 @@
 
 #include <forward_list>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 /// @brief Represents a band of dust during accrual.
@@ -343,4 +346,5 @@ class GenerationState
     void updateDustLanes(const Protoplanet& protoplanet);
 };
 
+}
 }

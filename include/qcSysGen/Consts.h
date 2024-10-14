@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -26,7 +26,10 @@
 
 #include <cstdint>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 // Non-specific constants
@@ -227,4 +230,5 @@ static constexpr double Weight_WaterVapor = 18.0;
 /// @brief Weight of molecular nitrogen.
 static constexpr double Weight_MolecularNitrogen = 28.0;
 
+}
 }

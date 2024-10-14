@@ -27,7 +27,10 @@
 #include <qcSysGen/Planet.h>
 #include <qcSysGen/Star.h>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 //----------------------------------------------------------------------------
@@ -180,4 +183,5 @@ double VolumeDensity(double mass, double radius)
     return (mass * SolarMassInGrams) / volume;
 }
 
+}
 }

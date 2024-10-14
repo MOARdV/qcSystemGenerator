@@ -1,7 +1,7 @@
 /*****************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2021-2023 Questionable Coding
+* Copyright (c) 2021-2024 Questionable Coding
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to
@@ -30,7 +30,10 @@
 #include <string>
 #include <vector>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 struct Config;
@@ -458,5 +461,7 @@ class Planet
 
 /// @brief Convenience type definition for std::forward_list<Planet>.
 typedef std::forward_list<Planet> PlanetList;
+
+}
 
 }

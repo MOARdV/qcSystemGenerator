@@ -30,7 +30,10 @@
 
 #include <assert.h>
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 //----------------------------------------------------------------------------
@@ -415,4 +418,5 @@ void GenerationState::updateDustLanes(const Protoplanet& protoplanet)
     }
 }
 
+}
 }

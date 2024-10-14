@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <string>
 
-using namespace qcSystemGenerator;
+using namespace qc::SystemGenerator;
 
 //----------------------------------------------------------------------------
 void SG_Callback(const char* text)

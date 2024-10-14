@@ -35,9 +35,11 @@
 namespace
 {
 
+using qc::SystemGenerator::Gas;
+
 struct ChemicalTable
 {
-    qcSystemGenerator::Gas chemical;
+    Gas chemical;
     float atomicWeight; //!< Atomic weight of the atom / molecule
     float meltingPoint; //!< Melting point, in Kelvin.
     float boilingPoint; //!< Boiling point, in Kelvin.
@@ -49,24 +51,24 @@ struct ChemicalTable
     float maxIPP; //!< Maximum inspired partial pressure
 };
 
-using qcSystemGenerator::MbPerMmhg;
+using qc::SystemGenerator::MbPerMmhg;
 
 /// @brief Table of atmospheric gases gleaned from Burrows 2006.  Max IPP values imported from Dole 1969.
 static constexpr ChemicalTable gases[] =
 {
-        { qcSystemGenerator::Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
-        { qcSystemGenerator::Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
-        { qcSystemGenerator::Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
-        { qcSystemGenerator::Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
+        { Gas::Hydrogen, 1.0079f,  14.06f, 20.40f, 8.99e-05f, 0.00125893f, 27925.4f, 1.0f, 0.0f },
+        { Gas::Helium, 4.0026f, 3.46f, 4.20f, 0.0001787f, 7.94328e-09f, 2722.7f, 0.0f, (61000.0f * MbPerMmhg) },
+        { Gas::Nitrogen, 14.0067f, 63.34f, 77.40f, 0.0012506f, 1.99526e-05f, 3.13329f, 0.0f, (2330.0f * MbPerMmhg) },
+        { Gas::Oxygen, 15.9994f, 54.80f, 90.20f, 0.001429f, 0.501187f, 23.8232f, 10.0f, (400.0f * MbPerMmhg) },
+        { Gas::Neon, 20.1700f, 24.53f, 27.10f, 0.0009f, 5.01187e-09f, 3.4435e-5f, 0.0f, (3900.0f * MbPerMmhg) },
+        { Gas::Argon, 39.9480f, 84.00f, 87.30f, 0.0017824f, 3.16228e-06f, 0.100925f, 0.0f, (1220.0f * MbPerMmhg) },
+        { Gas::Krypton, 83.8000f, 116.60f, 119.70f, 0.003708f, 1e-10f, 4.4978e-05f, 0.0f, (350.0f * MbPerMmhg) },
+        { Gas::Xenon, 131.3000f, 161.30f, 165.00f, 0.00588f, 3.16228e-11f, 4.69894e-06f, 0.0f, (160.0f * MbPerMmhg) },
+        { Gas::Ammonia, 17.0000f, 195.46f, 239.66f, 0.001f, 0.002f, 0.0001f, 1.0f, (100.0f * MbPerMmhg) },
+        { Gas::Water, 18.0000f, 273.16f, 373.16f, 1.000f, 0.03f, 0.001f, 0.0f, 0.0f },
+        { Gas::CarbonDioxide, 44.0000f, 194.66f, 194.66f, 0.001f, 0.01f, 0.0005f, 0.0f, (7.0f * MbPerMmhg) },
+        { Gas::Ozone, 48.0000f, 80.16f, 161.16f, 0.001f, 0.001f, 0.000001f, 2.0f, (0.10f * MbPerMmhg) },
+        { Gas::Methane, 16.0000f,  90.16f, 109.16f, 0.010f, 0.005f, 0.0001f, 1.0f, (50000.0f * MbPerMmhg) }
 };
 static constexpr int gasesCount = _countof(gases);
 
@@ -81,7 +83,7 @@ static constexpr int gasesCount = _countof(gases);
 /// @return Boiling point of water, in Kelvin.  0 if there is no atmospheric pressure.
 float BoilingPoint(float surfacePressureMb)
 {
-    const double surfacePressureBars = surfacePressureMb * qcSystemGenerator::BarPerMillibar;
+    const double surfacePressureBars = surfacePressureMb * qc::SystemGenerator::BarPerMillibar;
 
     // TODO: Where do the magic numbers come from?
     return static_cast<float>(1.0 / ((log(surfacePressureBars) / -5050.5) + (1.0 / 373.0)));
@@ -117,7 +119,7 @@ float Opacity(float minMolecularWeight, float surfacePressure)
         opticalDepth = opticalDepth + 0.05f;
     }
 
-    using qcSystemGenerator::EarthSurfacePressure;
+    using qc::SystemGenerator::EarthSurfacePressure;
     if (surfacePressure >= (70.0f * EarthSurfacePressure))
     {
         opticalDepth = opticalDepth * 8.333f;
@@ -168,7 +170,10 @@ inline float soft(float v, float max, float min)
 
 }
 
-namespace qcSystemGenerator
+namespace qc
+{
+
+namespace SystemGenerator
 {
 
 //----------------------------------------------------------------------------
@@ -365,7 +370,7 @@ void Planet::calculateEarthSimilarity()
     if (!atmosphere.empty())
     {
         // TODO: Refine this if I can find guidance on how the exponents were derived.
-        const auto o2 = std::find_if(atmosphere.begin(), atmosphere.end(), [](const AtmosphereComponent& c) { return c.gas == qcSystemGenerator::Gas::Oxygen; });
+        const auto o2 = std::find_if(atmosphere.begin(), atmosphere.end(), [](const AtmosphereComponent& c) { return c.gas == Gas::Oxygen; });
         const float ppo = surfacePress * ((o2 == atmosphere.end()) ? 0.0f : o2->fraction);
         // Partial pressure of oxygen.  Exponent is still work-in-progress.
         static constexpr float PpoWeight = 2.5f;
@@ -410,12 +415,12 @@ void Planet::calculateGases()
 
                 // TODO: Store 1.0f / (1.0f + reactivity) in the structures, instead of computing it every run
     //            if (strcmp(gases[i].symbol, "Ar") == 0)
-                if (gases[i].chemical == qcSystemGenerator::Gas::Argon)
+                if (gases[i].chemical == Gas::Argon)
                 {
                     react = 0.15f * static_cast<float>(star->age() / 4.0e9);
                 }
                 //            else if (strcmp(gases[i].symbol, "He") == 0)
-                else if (gases[i].chemical == qcSystemGenerator::Gas::Helium)
+                else if (gases[i].chemical == Gas::Helium)
                 {
                     abund *= 0.001f + static_cast<float>(gasMass / totalMass);
                     pres2 = (0.75f + pressure);
@@ -425,7 +430,7 @@ void Planet::calculateGases()
                 //                strcmp(gases[i].symbol, "O2") == 0) &&
                 //                sun->age > 2e9 &&
                 //                planet->surf_temp > 270 && planet->surf_temp < 400)
-                else if (gases[i].chemical == qcSystemGenerator::Gas::Oxygen &&
+                else if (gases[i].chemical == Gas::Oxygen &&
                          star->age() > 2.0e9 &&
                          // TODO: Where do these come from?
                          meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
@@ -437,7 +442,7 @@ void Planet::calculateGases()
                 //            else if (strcmp(gases[i].symbol, "CO2") == 0 &&
                 //                sun->age > 2e9 &&
                 //                planet->surf_temp > 270 && planet->surf_temp < 400)
-                else if (gases[i].chemical == qcSystemGenerator::Gas::CarbonDioxide &&
+                else if (gases[i].chemical == Gas::CarbonDioxide &&
                          star->age() > 2.0e9 &&
                          meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
                 {
@@ -1135,4 +1140,5 @@ double Planet::volatileInventory(GenerationState* state) const
     }
 }
 
+}
 }
