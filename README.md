@@ -76,8 +76,8 @@ The library and example application are both released under the MIT license.
 ## REFERENCES
 
 * Blagg 1913: "On a Suggested Substitute for Bode's Law", Mary A. Blagg, Monthly Notices of the Royal Astronomical Society. Vol 73, pp. 414-422, 1913
-* Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/
 * Burdick 1985: Accrete C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/tree/master/originals/burdick/accrete
+* Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/
 * Chen, et al. 2017: "Probabilistic Forecasting of the Masses and Radii of Other Worlds",  Jingjing Chen and David Kipping, The Astrophysical Journal, Vol 834, 17
 * Dole 1969: "Formation of Planetary Systems by Aggregation: A Computer Simulation", S. H. Dole, RAND paper no. P-4226, 1969
 * Fogg 1985: "Extra-Solar Planetary Systems: A Microcomputer Simulation", Martyn J. Fogg,  Journal of the British Interplanetary Society, Vol 38, pp. 501-514, 1985
