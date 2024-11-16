@@ -121,10 +121,10 @@ static constexpr double EarthDensity = 5.52;
 static constexpr float EarthEscapeVelocity = 11186.0f;
 
 /// @brief Effective temperature of the earth, in Kelvin.  Fogg originally used 255.
-static constexpr double EarthEffectiveTemperature = 250.0;
+static constexpr float EarthEffectiveTemperature = 250.0f;
 
 /// @brief Temperature of Earth's exosphere, in Kelvin.
-static constexpr double EarthExosphereTemperature = 1273.0;
+static constexpr float EarthExosphereTemperature = 1273.0f;
 
 /// @brief Percentage of Earth's surface covered with liquid water.
 static constexpr double EarthHydrosphere = 0.708;
@@ -202,7 +202,7 @@ static constexpr double SolarMassToEarthMass = 332775.64;
 
 /// @brief Convert solar mass to Jupiter mass.
 /// @todo Refine this value?
-static constexpr double SolarMassToJovianMass = 1.0 / 1047.0;
+static constexpr double SolarMassToJovianMass = 1047.0;
 
 /// @brief Mass of Sol, in grams.
 static constexpr double SolarMassInGrams = 1.989e33;
