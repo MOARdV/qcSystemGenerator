@@ -403,3 +403,5 @@ doxygen/
 
 # Don't include the doxygen docs, since they can't be displayed online. :(
 docs/
+IngestStars/EEM_dwarf_UBVIJHK_colors_Teff.txt
+IngestStars/StellarInfo.h

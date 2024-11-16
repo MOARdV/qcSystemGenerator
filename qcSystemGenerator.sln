@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qcSystemGenerator", "qcSyst
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example", "example\example.vcxproj", "{BD54949F-7843-4809-B030-C07A47D6B6BE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IngestStars", "IngestStars\IngestStars.vcxproj", "{00488691-4390-4132-9E7A-E9FF999ECDEC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Debug|x64.Build.0 = Debug|x64
 		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Release|x64.ActiveCfg = Release|x64
 		{BD54949F-7843-4809-B030-C07A47D6B6BE}.Release|x64.Build.0 = Release|x64
+		{00488691-4390-4132-9E7A-E9FF999ECDEC}.Debug|x64.ActiveCfg = Debug|x64
+		{00488691-4390-4132-9E7A-E9FF999ECDEC}.Debug|x64.Build.0 = Debug|x64
+		{00488691-4390-4132-9E7A-E9FF999ECDEC}.Release|x64.ActiveCfg = Release|x64
+		{00488691-4390-4132-9E7A-E9FF999ECDEC}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
