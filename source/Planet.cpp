@@ -538,7 +538,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
             }
 #endif
 
-            const double h2Mass = gasMass * 0.85;
+            double h2Mass = gasMass * 0.85;
             const double h2Life = getGasLife(Weight_MolecularHydrogen);
             bool lostMass = false;
 
@@ -547,6 +547,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
                 const double h2Loss = ((1.0 - (1.0 / exp(star.getAge() / h2Life))) * h2Mass);
 
                 gasMass -= h2Loss;
+                h2Mass -= h2Loss;
                 totalMass -= h2Loss;
                 assert(gasMass >= 0.0);
                 lostMass = true;
