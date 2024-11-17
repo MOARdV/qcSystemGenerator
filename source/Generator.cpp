@@ -137,7 +137,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
         coalescePlanetisimals(protoplanet);
     }
 #ifdef ALLOW_DEBUG_PRINTF
-    else
+    else if (verbose)
     {
         printf(" ... No dust collected.  Discarding\n");
     }
