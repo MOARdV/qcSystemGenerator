@@ -27,75 +27,68 @@
 #include <qcSysGen/Config.h>
 #include <qcSysGen/Consts.h>
 #include <qcSysGen/Equations.h>
-#include <qcSysGen/GenerationState.h>
+#include <qcSysGen/Generator.h>
 
 #include <algorithm>
 #include <math.h>
 
-/*
-* Development notes
-*
-* http://www.pas.rochester.edu/~emamajek/EEM_dwarf_UBVIJHK_colors_Teff.txt
-*/
-
 namespace
 {
 
-struct StellarClass
+#if 1
+//----------------------------------------------------------------------------
+__inline int32_t GetBaseStellarInfoIndex(qc::SystemGenerator::StarClassification s)
 {
-    double logLum; //!< The logarithm of stellar luminosity.
-    char subclass; //!< The subclass, integer [0, 9].
-    char stellarClass; //!< The stellar class.
-};
+    return static_cast<int32_t>(s) * 10;
+}
 
-static constexpr StellarClass stellarClass[] =
-{
-    { +1.58, '0', 'A' }, // M(solar) = 2.18
-    { +1.49, '1', 'A' },
-    { +1.38, '2', 'A' },
-    { +1.23, '3', 'A' },
-    { +1.13, '4', 'A' },
-    { +1.09, '5', 'A' },
-    { +1.05, '6', 'A' },
-    { +1.00, '7', 'A' },
-    { +0.96, '8', 'A' },
-    { +0.92, '9', 'A' },
-    { +0.86, '0', 'F' },
-    { +0.79, '1', 'F' },
-    { +0.71, '2', 'F' },
-    { +0.67, '3', 'F' },
-    { +0.62, '4', 'F' },
-    { +0.56, '5', 'F' },
-    { +0.43, '6', 'F' },
-    { +0.39, '7', 'F' },
-    { +0.29, '8', 'F' },
-    { +0.22, '9', 'F' },
-    { +0.13, '0', 'G' },
-    { +0.08, '1', 'G' },
-    { +0.01, '2', 'G' },
-    { -0.01, '3', 'G' },
-    { -0.04, '4', 'G' },
-    { -0.05, '5', 'G' },
-    { -0.10, '6', 'G' },
-    { -0.13, '7', 'G' },
-    { -0.17, '8', 'G' },
-    { -0.26, '9', 'G' },
-    { -0.34, '0', 'K' },
-    { -0.39, '1', 'K' },
-    { -0.43, '2', 'K' },
-    { -0.55, '3', 'K' },
-    { -0.69, '4', 'K' },
-    { -0.76, '5', 'K' },
-    { -0.86, '6', 'K' },
-    { -1.00, '7', 'K' },
-    { -1.06, '8', 'K' },
-    { -1.10, '9', 'K' },
-    { -1.16, '0', 'M' }, // M(solar) = 0.57
-};
+// All values below assume Sol.
 
-static constexpr int stellarClassCount = _countof(stellarClass);
+constexpr double EcosphereScalar = 1.0; //!< Radius of the ecosphere, in AU.
+
+constexpr double SnowLineScalar = 5.0; //!< The snow line scalar, where water ice can exist in a vacuum, in AU.
+
+static constexpr double InnerHabitableZoneScalar = 0.95; //!< Inner limit of the habitable zone, in AU.
+static constexpr double OuterHabitableZoneScalar = 1.37; //!< Outer limit of the habitable zone, in AU.
+
+// vvv These may belong in the Generator, instead, since that's the only place where we use them ... ?
+
+/// @brief Inner limit of planetisimal formation, in AU.
+static constexpr double InnerPlanetScalar = 0.3;
+/// @brief Outer limit of planetisimal formation, in AU.
+static constexpr double OuterPlanetScalar = 50.0;
+
+/// @brief Inner limit of dust formation, in AU.
+static constexpr double InnerDustScalar = 0.0;
+/// @brief Outer limit of dust formation, in AU.
+static constexpr double OuterDustScalar = 200.0;
+
+static constexpr double InnerZone1Scalar = 0.0; //!< Inner limit of dust Zone 1, in AU
+/// @brief Outer limit of dust Zone 1, in AU.
+static constexpr double OuterZone1Scalar = 5.0;
+
+/// @brief Inner limit of dust Zone 2, in AU.
+static constexpr double InnerZone2Scalar = 4.0;
+/// @brief Outer limit of dust Zone 2, in AU.
+static constexpr double OuterZone2Scalar = 16.0;
+
+/// @brief Inner limit of dust Zone 3, in AU.
+static constexpr double InnerZone3Scalar = 14.0;
+/// @brief Outer limit of dust Zone 3, in AU.
+static constexpr double OuterZone3Scalar = 200.0;
+#endif
+
+// Stats related to the star type.
+//
+// Mass and radius are normalized so Sol = 1.0.
+//
+// Luminance is normalized so Sol = 1.0; since this table
+// contains logL, logL Sol = 0.0.
+
+#include "StellarInfo.h"
 
 }
+
 
 namespace qc
 {
@@ -104,86 +97,123 @@ namespace SystemGenerator
 {
 
 //----------------------------------------------------------------------------
-Star::Star(float mass, double random01) :
-    stellarMass(mass),
-    stellarLuminosity(Luminosity(mass)),
-    lifespan(0.0),
-    curtMass(0.0),
-    sqrtLum(0.0),
-    outerPlanetaryR(0.0)
+void Star::evaluate(Generator* generator)
 {
-    lifespan = 1.0e10 * (stellarMass / stellarLuminosity);
-    stellarAge = Lerp(random01, MinimumStellarAge, std::min(MaximumStellarAge, lifespan));
-
-    sqrtLum = sqrt(stellarLuminosity);
-    curtMass = pow(stellarMass, (1.0 / 3.0));
-
-    outerPlanetaryR = curtMass * OuterPlanetScalar;
-}
-
-//----------------------------------------------------------------------------
-void Star::init(const Config* config, GenerationState* state)
-{
-    stellarMass = config->stellarMass;
-    stellarLuminosity = Luminosity(stellarMass);
-
-    lifespan = 1.0E10 * (stellarMass / stellarLuminosity);
-    stellarAge = state->randomUniform(MinimumStellarAge, std::min(MaximumStellarAge, lifespan));
-
-    sqrtLum = sqrt(stellarLuminosity);
-    curtMass = pow(stellarMass, (1.0 / 3.0));
-
-    outerPlanetaryR = curtMass * OuterPlanetScalar;
-    if (config->overrideOuterPlanetLimit > 0.0)
+    if (evaluated)
     {
-        outerPlanetaryR = std::min(outerPlanetaryR, config->overrideOuterPlanetLimit);
+        return; // Early.  We already evaluated this star.
     }
+
+    //--- Set the primary derived values:
+
+    const StellarInfo_t& si = stellarInfo[GetBaseStellarInfoIndex(type) + subtype];
+
+    temperatureKelvin = powf(10.0f, si.logT);
+    luminositySolar = pow(10.0, si.logL);
+    radiusSolar = si.radius;
+    massSolar = si.mass;
+
+    const double maximumStellarAge = std::min(MaximumStellarAge, 1.0e10 * (massSolar / luminositySolar));
+
+    if (ageYears == 0.0)
+    {
+        if (!generator)
+        {
+            ageYears = 0.5 * (maximumStellarAge + MinimumStellarAge);
+        }
+        else
+        {
+            const double ageRange = maximumStellarAge - MinimumStellarAge;
+            ageYears = generator->randomUniform(MinimumStellarAge + 0.25 * ageRange, MinimumStellarAge + 0.75 * ageRange);
+        }
+    }
+
+    ageYears = std::max(MinimumStellarAge, ageYears);
+    ageYears = std::min(maximumStellarAge, ageYears);
+
+    //--- Set the secondary derived values:
+    const double sqrtLum = sqrt(luminositySolar);
+    const double curtMass = pow(massSolar, (1.0 / 3.0));
+
+    ecosphere = sqrtLum * EcosphereScalar;
+    snowLine = sqrtLum * SnowLineScalar;
+
+    habitableZone = std::make_pair(sqrtLum * InnerHabitableZoneScalar, sqrtLum * OuterHabitableZoneScalar);
+    dustZone = std::make_pair(curtMass * InnerDustScalar, curtMass * OuterDustScalar);
+    protoplanetZone = std::make_pair(curtMass * InnerPlanetScalar, curtMass * OuterPlanetScalar);
+
+    zone1 = std::make_pair(sqrtLum * InnerZone1Scalar, sqrtLum * OuterZone1Scalar);
+    zone2 = std::make_pair(sqrtLum * InnerZone2Scalar, sqrtLum * OuterZone2Scalar);
+    zone3 = std::make_pair(sqrtLum * InnerZone3Scalar, sqrtLum * OuterZone3Scalar);
+
+    evaluated = true;
 }
 
 //----------------------------------------------------------------------------
-void Star::stellarClass(char* output, size_t sizeofOutput) const
+StarType_t Star::GetStarType(double mass)
+{
+    // Start at the heaviest, move to the lightest.
+
+    const float m = float(mass);
+    // Start on index 3 (O3V), not 0, since the first 3 entries are bogus
+    for (uint32_t i = 3; i < stellarInfoCount; ++i)
+    {
+        if (stellarInfo[i].mass <= m)
+        {
+            const uint32_t c = i / 10u;
+            const uint32_t idx = i % 10u;
+
+            return std::make_pair(StarClassification(c), int32_t(idx));
+        }
+    }
+
+    // Hard-coded fallback: star is too small.
+    return std::make_pair(StarClassification::M_V, 9);
+}
+
+//----------------------------------------------------------------------------
+void Star::getStellarClass(char* output, size_t sizeofOutput) const
 {
     if (sizeofOutput < 4)
     {
         return;
     }
 
-    const double logLum = log(stellarLuminosity);
-
-    output[2] = 'V';
-    output[3] = 0;
-
-    if (logLum > ::stellarClass[0].logLum)
+    const char* fmt = nullptr;
+    switch (type)
     {
-        output[0] = ::stellarClass[0].stellarClass;
-        output[1] = ::stellarClass[0].subclass;
-
-        return;
+        case StarClassification::O_V:
+            fmt = "O%dV";
+            break;
+        case StarClassification::B_V:
+            fmt = "B%dV";
+            break;
+        case StarClassification::A_V:
+            fmt = "A%dV";
+            break;
+        case StarClassification::F_V:
+            fmt = "F%dV";
+            break;
+        case StarClassification::K_V:
+            fmt = "K%dV";
+            break;
+        case StarClassification::M_V:
+            fmt = "M%dV";
+            break;
+        case StarClassification::G_V:
+        default:
+            fmt = "G%dV";
     }
 
-    auto result = std::adjacent_find(std::begin(::stellarClass), std::end(::stellarClass), [=](const StellarClass& left, const StellarClass& right)
-                                     {
-                                         return (left.logLum >= logLum && right.logLum < logLum);
-                                     });
-
-    if (result != std::end(::stellarClass))
-    {
-        output[0] = result->stellarClass;
-        output[1] = result->subclass;
-    }
-    else
-    {
-        output[0] = ::stellarClass[stellarClassCount - 1].stellarClass;
-        output[1] = ::stellarClass[stellarClassCount - 1].subclass;
-    }
+    sprintf_s(output, sizeofOutput, fmt, subtype);
 }
 
 //----------------------------------------------------------------------------
-void Star::stellarClass(std::string& out) const
+void Star::getStellarClass(std::string& out) const
 {
     // Yes, I'm taking the lazy way
     char outchar[4];
-    stellarClass(outchar, sizeof(outchar));
+    getStellarClass(outchar, sizeof(outchar));
 
     out = std::string(outchar);
 }

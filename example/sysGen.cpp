@@ -24,7 +24,7 @@
 ****************************************************************************/
 #include <qcSysGen/System.h>
 
-#include <qcSysGen/GenerationState.h>
+#include <qcSysGen/Generator.h>
 
 #include <assert.h>
 #include <string>
@@ -56,9 +56,9 @@ std::string RomanNumeral(int value)
 std::string PlanetOrdinal(int planetOrd)
 {
     std::string str(RomanNumeral(planetOrd));
-    if (str.length() < 8u)
+    if (str.length() < 7u)
     {
-        str.append(8u - str.length(), ' ');
+        str.append(7u - str.length(), ' ');
     }
 
     return str;
@@ -142,86 +142,81 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
 {
     std::string planetInfo;
 
-    if (planetOrdinal >= 0)
-    {
-        planetInfo.append(MoonOrdinal(planetOrdinal, pl.ordinal())).append(" - ").append(Planet::PlanetTypeString(pl.planetType())).append(" moon");
-    }
-    else
-    {
-        planetInfo.append(PlanetOrdinal(pl.ordinal())).append(" - ").append(Planet::PlanetTypeString(pl.planetType()));
-    }
+    planetInfo.append(PlanetOrdinal(planetOrdinal)).append(" - ").append(pl.getName());
     puts(planetInfo.c_str());
     planetInfo.clear();
 
-    if (pl.planetType() != PlanetType::AsteroidBelt)
+    planetInfo.append("\t").append(Planet::PlanetTypeString(pl.getPlanetType()));
+    puts(planetInfo.c_str());
+    planetInfo.clear();
+
+    if (pl.getPlanetType() != PlanetType::AsteroidBelt)
     {
         char buffer[64];
 
         planetInfo.append("\tSemi-major axis: ");
-        if (planetOrdinal >= 0)
-        {
-            planetInfo.append(km(pl.sma()));
-        }
-        else
-        {
-            planetInfo.append(SMA(pl.sma()));
-        }
+        planetInfo.append(SMA(pl.getSemimajorAxis()));
         puts(planetInfo.c_str());
         planetInfo.clear();
 
-        planetInfo.append("\tRadius: ").append(Radius(pl.r()));
+        planetInfo.append("\tRadius: ").append(Radius(pl.getRadius()));
         puts(planetInfo.c_str());
         planetInfo.clear();
 
-        sprintf_s(buffer, "%4.1fg/cc", pl.density());
+        sprintf_s(buffer, "%4.1fg/cc", pl.getDensity());
         planetInfo.append("\tDensity: ").append(buffer);
         puts(planetInfo.c_str());
         planetInfo.clear();
 
         if (!pl.isGaseous())
         {
-            sprintf_s(buffer, "%4.2f", pl.esi());
+            sprintf_s(buffer, "%4.2f", pl.getEarthSimilarityIndex());
             planetInfo.append("\tESI: ").append(buffer);
             puts(planetInfo.c_str());
             planetInfo.clear();
 
-            sprintf_s(buffer, "%4.0f*C - %3.0f%% ocean, %3.0f%% ice", pl.surfaceTemperature() + KelvinToCelsius, 100.0f * pl.hydroPercentage(), 100.0f * pl.icePercentage());
+            sprintf_s(buffer, "%6.3lf", pl.getMass() * SolarMassToEarthMass);
+            planetInfo.append("\tMass (E): ").append(buffer);
+            puts(planetInfo.c_str());
+            planetInfo.clear();
+
+            sprintf_s(buffer, "%4.0f*C - %3.0f%% ocean, %3.0f%% ice", pl.getSurfaceTemperature() + KelvinToCelsius, 100.0f * pl.getHydroPercentage(), 100.0f * pl.getIcePercentage());
             planetInfo.append("\tSurface Temp: ").append(buffer);
             puts(planetInfo.c_str());
             planetInfo.clear();
 
-            sprintf_s(buffer, "%4.1fg", pl.surfaceGravity());
+            sprintf_s(buffer, "%4.1fg", pl.getSurfaceGravity());
             planetInfo.append("\tSurface Gravity: ").append(buffer);
             puts(planetInfo.c_str());
             planetInfo.clear();
 
-            sprintf_s(buffer, "%7.3fatm - %3.0f%% cloud coverage", pl.surfacePressure() / EarthSurfacePressure, 100.0f * pl.cloudPercentage());
+            sprintf_s(buffer, "%7.3fatm - %3.0f%% cloud coverage", pl.getSurfacePressure() / EarthSurfacePressure, 100.0f * pl.getCloudPercentage());
             planetInfo.append("\tSurface Press: ").append(buffer);
             puts(planetInfo.c_str());
             planetInfo.clear();
 
-            if (pl.esi() > 0.80f)
+            if (pl.getEarthSimilarityIndex() > 0.80f)
             {
-                assert(pl.surfacePressure() > 0.0f);
+                assert(pl.getSurfacePressure() > 0.0f);
                 puts("\tAtmosphere:");
 
                 bool firstTrace = true;
-                for (auto gas = pl.beginAtmo(); gas != pl.endAtmo(); ++gas)
+                for (const auto& gas : pl.getAtmo())
                 {
-                    bool showPercent = (gas->fraction >= 0.001f);
-                    bool showPPM = (gas->fraction >= 0.000001f);
+                    bool showPercent = (gas.fraction >= 0.001f);
+                    bool showPPM = (gas.fraction >= 0.000001f);
 
                     if (showPercent)
                     {
-                        sprintf_s(buffer, "%5.1f%%", gas->fraction * 100.0f);
-                        planetInfo.append("\t\t").append(Planet::GasString(gas->gas)).append(": ").append(buffer);
+                        sprintf_s(buffer, "%5.1f%%", gas.fraction * 100.0f);
+                        planetInfo.append("\t\t").append(Planet::GasString(gas.gas)).append(": ").append(buffer);
                         puts(planetInfo.c_str());
                         planetInfo.clear();
                     }
                     else if (showPPM)
                     {
-                        sprintf_s(buffer, "%3.0fppm", gas->fraction * 1000000.0f);
-                        planetInfo.append("\t\t").append(Planet::GasString(gas->gas)).append(": ").append(buffer);
+                        sprintf_s(buffer, "%3.0fppm", gas.fraction * 1000000.0f);
+                        planetInfo.append("\t\t").append(Planet::GasString(gas.gas)).append(": ").append(buffer);
                         puts(planetInfo.c_str());
                         planetInfo.clear();
                     }
@@ -236,12 +231,19 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
                         {
                             planetInfo.append(", ");
                         }
-                        planetInfo.append(Planet::GasString(gas->gas));
+                        planetInfo.append(Planet::GasString(gas.gas));
                     }
                 }
                 puts(planetInfo.c_str());
                 planetInfo.clear();
             }
+        }
+        else // Is gaseous
+        {
+            sprintf_s(buffer, "%.3lf", pl.getMass() * SolarMassToJovianMass);
+            planetInfo.append("\tMass (Jovian):\t").append(buffer);
+            puts(planetInfo.c_str());
+            planetInfo.clear();
         }
     }
 }
@@ -249,82 +251,88 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
 //----------------------------------------------------------------------------
 int main(int, char**)
 {
-#if 0
-    // Sanity checks
-    Star sun(1.0f, 0.5f);
-    const double totalMass = 3.0e-6;
-    const double gasMass = 0.0;
-    const double dustMass = totalMass - gasMass;
-    Planet earth(1.0f, 0.0167f, dustMass, gasMass);
+    Generator gen;
+    //gen.seed(12345);
+    //gen.seed(0x7d9a6763eae90ecbull);
+
+    uint64_t seed = time(nullptr);
+    seed = 6364136223846793005ULL * seed + 1ull;
+    uint32_t tm = static_cast<uint32_t>(seed >> 32u);
+    tm ^= tm >> 11;
+    tm ^= tm << 7 & 0x9D2C5680;
+    tm ^= tm << 15 & 0xEFC60000;
+    tm ^= tm >> 18;
+    gen.seed((seed & 0xffffffffull) | (static_cast<uint64_t>(tm) << 32ull));
+
+
+    Star sun;
+    sun.setType(StarClassification::G_V, 2);
+    sun.setName("Bob");
+    sun.evaluate(&gen);
+
+    SolarSystem ss;
+    ss.setName("Bob System");
+    ss.add(sun);
 
     Config cfg;
-    cfg.stellarMass = 1.0f;
-    cfg.seed = 1;
-    cfg.computeGases = true;
-    GenerationState state(&cfg);
-    earth.evaluate(&sun, nullptr, 3, &cfg, &state);
-#endif
-    System system;
+    cfg.generateStar = true;
+    cfg.generateBodeSeeds = true;
+    cfg.verboseLogging = true;
+    gen.generate(ss, cfg);
 
-    Config config;
-    //config.stellarMass = 1.01f;
-    config.randomAxialTilt = true;
-    config.generateBodeSeeds = true;
-    config.generateMoons = true;
-    config.computeGases = true;
-    config.callback = SG_Callback;
-
-    system.create(&config);
-
-    const size_t numPlanets = system.size();
+    const size_t numPlanets = ss.getPlanets().size();
 
     OrbitalZone lastZone = OrbitalZone::Inner;
 
     char starClass[4];
-    system.star().stellarClass(starClass, sizeof(starClass));
-    printf("Central Star: %s - seed 0x%I64X\n %u protoplanets consumed\n\n", starClass, system.seed(), system.protoplanets());
+    ss.getStar().getStellarClass(starClass, sizeof(starClass));
+    printf("Central Star: %s - seed 0x%I64X\n %u protoplanets consumed\n", starClass, gen.getSeed(), gen.getProtoplanetCount());
+    printf("Habitable Zone: %.3lfAU - %.3lfAU\nEcosphere     : %.3lfAU\n\n",
+           ss.getStar().getHabitableZone().first, ss.getStar().getHabitableZone().second,
+           ss.getStar().getEcosphere());
 
     printf("=== INNER ZONE     %6.3lfAU ==================================================\n", 0.0);
-    for (const auto& pl : system)
+    int ordinal = 1;
+    for (const auto& pl : ss.getPlanets())
     {
-        const OrbitalZone thisZone = system.star().zone(pl.sma());
+        const OrbitalZone thisZone = ss.getStar().getOrbitalZone(pl.getSemimajorAxis());
         if (thisZone != lastZone)
         {
             if (thisZone == OrbitalZone::Habitable)
             {
-                printf("=== HABITABLE ZONE %6.3lfAU ==================================================\n", system.star().innerHabitableZone());
+                printf("=== HABITABLE ZONE %6.3lfAU ==================================================\n", ss.getStar().getHabitableZone().first);
             }
             else if (thisZone == OrbitalZone::Middle)
             {
                 if (lastZone != OrbitalZone::Habitable)
                 {
-                    printf("=== HABITABLE ZONE %6.3lfAU ==================================================\n", system.star().innerHabitableZone());
+                    printf("=== HABITABLE ZONE %6.3lfAU ==================================================\n", ss.getStar().getHabitableZone().first);
                 }
-                printf("=== MIDDLE ZONE    %6.3lfAU ==================================================\n", system.star().outerHabitableZone());
+                printf("=== MIDDLE ZONE    %6.3lfAU ==================================================\n", ss.getStar().getHabitableZone().second);
             }
             else if (thisZone == OrbitalZone::Outer)
             {
-                printf("=== OUTER ZONE     %6.3lfAU ==================================================\n", system.star().snowLine());
+                printf("=== OUTER ZONE     %6.3lfAU ==================================================\n", ss.getStar().getSnowLine());
             }
             lastZone = thisZone;
         }
 
         std::string planetInfo;
-        planetInfo.append(PlanetOrdinal(pl.ordinal()));
-        planetInfo.append(2, ' ').append(1, AsciiArtType(pl.planetType())).append(2, ' ');
-        planetInfo.append(SMA(pl.sma()));
-        planetInfo.append(Radius(pl.r()));
+        planetInfo.append(PlanetOrdinal(ordinal++));
+        planetInfo.append(2, ' ').append(1, AsciiArtType(pl.getPlanetType())).append(2, ' ');
+        planetInfo.append(SMA(pl.getSemimajorAxis()));
+        planetInfo.append(Radius(pl.getRadius()));
 
         if (!pl.isGaseous())
         {
-            planetInfo.append(MeanSurfaceConditions(pl.surfaceTemperature() + KelvinToCelsius, pl.surfacePressure()));
+            planetInfo.append(MeanSurfaceConditions(pl.getSurfaceTemperature() + KelvinToCelsius, pl.getSurfacePressure()));
             char esi[16];
-            sprintf_s(esi, "esi: %4.2f", pl.esi());
+            sprintf_s(esi, "esi: %4.2f", pl.getEarthSimilarityIndex());
             planetInfo.append(esi);
         }
 
         puts(planetInfo.c_str());
-        if (pl.sizeMoon() > 0)
+        /*if (pl.sizeMoon() > 0)
         {
             std::for_each(pl.beginMoon(), pl.endMoon(), [&](const auto& m)
                           {
@@ -342,22 +350,24 @@ int main(int, char**)
 
                               puts(moonInfo.c_str());
                           });
-        }
+        }*/
     }
 
-    for (const auto& pl : system)
+
+    ordinal = 1;
+    for (const auto& pl : ss.getPlanets())
     {
         puts("\n==============================================================================");
 
-        SpewPlanet(pl, -1);
-        if (pl.sizeMoon() > 0)
+        SpewPlanet(pl, ordinal++);
+        /*if (pl.sizeMoon() > 0)
         {
             std::for_each(pl.beginMoon(), pl.endMoon(), [&](const auto& m)
                           {
                               puts("");
                               SpewPlanet(m, pl.ordinal());
                           });
-        }
+        }*/
     }
 
     return 0;

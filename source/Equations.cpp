@@ -24,9 +24,6 @@
 ****************************************************************************/
 #include <qcSysGen/Equations.h>
 
-#include <qcSysGen/Planet.h>
-#include <qcSysGen/Star.h>
-
 namespace qc
 {
 
@@ -45,27 +42,21 @@ double CriticalLimit(double sma, double eccentricity, double stellarLuminosity)
 }
 
 //----------------------------------------------------------------------------
-double GasLife(double molecularMass, const Planet* planet)
-{
-    const double v = RMSVelocity(molecularMass, planet->exosphereTemperature()) * CmPerM;
-
-    const double g = planet->surfaceAcceleration() * CmPerM;
-
-    const double r = planet->r() * CmPerKm;
-
-    const double t = (pow(v, 3.0) / (2.0 * pow(g, 2.0) * r)) * exp((3.0 * g * r) / pow(v, 2.0));
-
-    return t * YearsPerSecond;
-}
-
-//----------------------------------------------------------------------------
-double KothariRadius(double mass, double sma, bool forGasGiant, const Star* star)
+double KothariRadius(double mass, double sma, bool forGasGiant, float materialZone)
 {
     // nb: atomicWeight is A in Kothari's equation.  atomicNumber is Z.
 
-    const float orbitZone = star->materialZone(sma);
-    int zoneIndex = (orbitZone < 2.0f) ? 0 : 1;
-    double interpolant = (orbitZone - floorf(orbitZone));
+    // Parameter A1 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double A1 = 6.485e12;
+
+    // Parameter A2 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double A2 = 4.0032e-8;
+
+    // Parameter B in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double B = 5.71e12;
+
+    int zoneIndex = (materialZone < 2.0f) ? 0 : 1;
+    double interpolant = (materialZone - floorf(materialZone));
 
     if (forGasGiant)
     {
@@ -81,11 +72,11 @@ double KothariRadius(double mass, double sma, bool forGasGiant, const Star* star
 
     const double ZA = atomicWeight * atomicNumber;
 
-    double radius = (2.0 * K_B * pow(SolarMassInGrams, (1.0 / 3.0))) / (K_A1 * pow(ZA, (1.0 / 3.0)));
+    double radius = (2.0 * B * pow(SolarMassInGrams, (1.0 / 3.0))) / (A1 * pow(ZA, (1.0 / 3.0)));
 
-    double denominator = K_A2 * pow(atomicWeight, (4.0 / 3.0)) * pow(SolarMassInGrams, (2.0 / 3.0));
+    double denominator = A2 * pow(atomicWeight, (4.0 / 3.0)) * pow(SolarMassInGrams, (2.0 / 3.0));
     denominator *= pow(mass, (2.0 / 3.0));
-    denominator /= (K_A1 * (atomicNumber * atomicNumber));
+    denominator /= (A1 * (atomicNumber * atomicNumber));
     denominator += 1.0;
 
     radius /= denominator;
@@ -109,63 +100,6 @@ double Luminosity(double stellarMass)
     }
 
     return pow(stellarMass, n);
-}
-
-//----------------------------------------------------------------------------
-double MinimumMolecularWeight(const Planet* planet, const Star* star)
-{
-    // We will search through various molecular masses to find the one that is
-    // closest to the age of the planetary system.  We initialize the search to
-    // the molecular limit of the planet, and check its gas life.
-    const double goalAge = star->age();
-
-    double molecularMass = MolecularLimit(planet->escapeVelocity(), planet->exosphereTemperature());
-    double previousMass = molecularMass;
-
-    double gasLife = GasLife(molecularMass, planet);
-
-    if (gasLife > goalAge)
-    {
-        // Gas retention is high for the starting mass.  Reduce the weight to find the right range.
-        while (gasLife > goalAge)
-        {
-            previousMass = molecularMass;
-            molecularMass *= 0.5;
-
-            gasLife = GasLife(molecularMass, planet);
-        }
-    }
-    else
-    {
-        // Gas retention is low.  Increase the weight to find something that's retained.
-        while (gasLife < goalAge)
-        {
-            previousMass = molecularMass;
-            molecularMass *= 2.0;
-
-            gasLife = GasLife(molecularMass, planet);
-        }
-        // molecularMass is the lower of the two values in the binary search below.
-        std::swap(previousMass, molecularMass);
-    }
-
-    // Binary search between the two end points
-    while (previousMass - molecularMass > 0.1)
-    {
-        const double midMass = (previousMass + molecularMass) * 0.5;
-        gasLife = GasLife(midMass, planet);
-
-        if (gasLife < goalAge)
-        {
-            molecularMass = midMass;
-        }
-        else
-        {
-            previousMass = midMass;
-        }
-    }
-
-    return (previousMass + molecularMass) * 0.5;
 }
 
 //----------------------------------------------------------------------------

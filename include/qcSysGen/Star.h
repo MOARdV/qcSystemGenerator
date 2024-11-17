@@ -34,63 +34,6 @@ namespace qc
 namespace SystemGenerator
 {
 
-struct Config;
-class GenerationState;
-
-//--- CONSTANTS - todo: scope them inside Star?
-
-/// @brief Radius of the ecosphere, in AU.
-static constexpr double EcosphereScalar = 1.0;
-
-/// @brief Inner limit of dust formation, in AU.
-static constexpr double InnerDustScalar = 0.0;
-
-/// @brief Inner limit of the habitable zone, in AU.
-static constexpr double InnerHabitableZoneScalar = 0.95;
-
-/// @brief Inner limit of planetisimal formation, in AU.
-static constexpr double InnerPlanetScalar = 0.3;
-
-/// @brief Inner limit of dust Zone 2, in AU.
-static constexpr double InnerZone2Scalar = 4.0;
-
-/// @brief Inner limit of dust Zone 3, in AU.
-static constexpr double InnerZone3Scalar = 14.0;
-
-/// @brief The maximum age for a main sequence star with fully-formed planets, in years.
-///
-/// Note that this value is not the maximum possible age of the star.  It is simply the
-/// upper limit for a star's maximum randomly-determined age, provided the star is not too
-/// hot / shorter lived.
-static constexpr double MaximumStellarAge = 6.0e9;
-
-/// @brief The minimum age for a main sequence star with fully-formed planets, in years.
-static constexpr double MinimumStellarAge = 1.0e9;
-
-/// @brief The highest stellar mass that can be used in the Star class.
-static constexpr float MaximumStellarMass = 2.18f;
-
-/// @brief The lowest stellar mass that can be used in the Star class.
-static constexpr float MinimumStellarMass = 0.57f;
-
-/// @brief Outer limit of dust formation, in AU.
-static constexpr double OuterDustScalar = 200.0;
-
-/// @brief Outer limit of the habitable zone, in AU.
-static constexpr double OuterHabitableZoneScalar = 1.37;
-
-/// @brief Outer limit of planetisimal formation, in AU.
-static constexpr double OuterPlanetScalar = 50.0;
-
-/// @brief Outer limit of dust Zone 1, in AU.
-static constexpr double OuterZone1Scalar = 5.0;
-
-/// @brief Outer limit of dust Zone 2, in AU.
-static constexpr double OuterZone2Scalar = 16.0;
-
-/// @brief The snow line, where water ice can exist in a vacuum, in AU.
-static constexpr double SnowLineScalar = 5.0;
-
 //--- Enumerations
 
 /// @brief A broad classification of the zones of a planetary system, based on position relative to the
@@ -103,87 +46,159 @@ enum class OrbitalZone
     Outer, //!< Outside the snow line.
 };
 
-/// @brief Encapsulates the stats of the central star of the planetary sytem.
+class Generator;
+
+/// @brief Describes the inner/outer limit of various bands around the star, ie
+/// the Habitable Zone, or Inner Planets, etc.
+typedef std::pair<double, double> BandLimit_t;
+
+
+/// @brief Provides enumerations of the (for now) main sequence star types.
 ///
-/// Main sequence stars are assumed.  Mass in the range of [0.6, 1.3] leads to
-/// best results.  Masses outside that range may lead to odd results due to an
-/// inaccurate estimation of stellar luminosity.
+/// Any star type may be specified, but accretion results are *not* guaranteed at the extremes of
+/// this sequence.  The accretion implementation is intended to work in the range of F5V to K9V.
+/// 
+/// O class stars do not support O0V, O1V, or O2V types.  The type will be clamped at O3V.
+enum class StarClassification : uint32_t
+{
+    O_V, //!< Main sequence class O.  Can support types O3V - O9V.  Super-rare.  Probably should not use.
+    B_V, //!< Main sequence class B.
+    A_V, //!< Main sequence class A.
+    F_V, //!< Main sequence class F.  Warmest star type that works well with accretion (F5V or cooler).
+    G_V, //!< Main sequence class G.  Earth's sun is G2V.
+    K_V, //!< Main sequence class K.  The coolest temperature stars that work well with accretion.
+    M_V, //!< Main sequence class M.  Red dwarfs.
+};
+
+/// @brief Encapsulates a star's classification.
+typedef std::pair<StarClassification, int32_t> StarType_t;
+
+/// @brief Encapsulates the data describing a star.
+///
+/// A star is primarily defined by the star type (enumerated as StarClassification) and an integer subtype in the range
+/// of [0, 9].  Most of the other parameters are derived from those values.
+/// 
+/// Mass, radius, and luminosity are all Sol-normalized values (Sol = 1.0).
+/// 
+/// The age of the star may be specified any time after setting the stellar type.  If the age is still the
+/// default (0.0) when evaluate() is called, an arbitrary middling age will be selected at random.  Otherwise,
+/// the age will be clamped to reasonable values.  Note that setting the age /after/ evaluate() is called will
+/// bypass the sanity checks, and could lead to Bad Things happening in equations that rely on the solar age.
+/// 
+/// The name of the star may be specified before adding it to a solar system.  If the name is not specified,
+/// the star will inherit the name of the solar system.
+/// 
+/// @todo: Evaluate whether I should allow floats instead of ints for type.  It matters more on the ends of the
+/// scale, which are not really the intended range for accretion, but could be used for other configurations.
 class Star
 {
     public:
-    /// @brief Null-initialize a star.
-    Star() :stellarMass(0.0f), stellarLuminosity(0.0f), stellarAge(0.0), lifespan(0.0), curtMass(0.0), sqrtLum(0.0), outerPlanetaryR(0.0) {}
+    //--- Constants
+    static constexpr double MinimumStellarAge = 1.0e9; //!< Minimum age allowed for solar system generation.
+    static constexpr double MaximumStellarAge = 6.0e9; //!< Maximum age allowed for solar system generation.  Note shorter-lived stars will have lower values.
 
-    /// @brief Initialize a star based on the solar mass of the star.
+    //--- Methods
+    /// @brief Null constructor.  Initializes the star to a G2V.
+    Star() { reset(); }
+
+    /// @brief Basic constructor to initialize the type/subtype.
+    /// @param type_ The primary classification of the star.
+    /// @param subtype_ The subtype of the star.  Valid ranges are 0 to 9, inclusive.
+    Star(StarClassification type_, int32_t subtype_) { setType(type_, subtype_); }
+
+    /// @brief Evaluate the derived traits of the star.
+    ///
+    /// If the star's age has not been specified (it is still the default age of
+    /// 0.0), then the age will be set to halfway between the star's minimum age
+    /// amd maximum age.
     /// 
-    /// The `random01` parameter is used to select the age, from MimimumStellarAge (0.0) to MaximumStellarAge (1.0).
+    /// If the star's age was specified, it is clamped to the range between
+    /// minimum and maximum.
     /// 
-    /// @note Mass is not clamped in this constructor.  It should be within the bounds of [MinimumStellarMass, MaximumStellarMass].
-    /// @param mass The mass of the star in solar masses.
-    /// @param random01 A number in the range of [0, 1].
-    Star(float mass, double random01);
+    /// The `generator` parameter is an optional parameter that allows some values to
+    /// be randomized to add some variation to the star.  If `generator` is not null,
+    /// the following behaviors change:
+    /// 
+    /// If the age is unspecified, then a random age between 25% and 75% of the
+    /// star's min/max age will be selected at random.
+    /// 
+    /// @todo How about the other values?  Randomize mass and luminosity slightly?
+    /// 
+    /// @note If a star is not evaluated prior to adding it to a SolarSystem, the
+    /// `generator` parameter will be null.
+    /// @param generator An optional pointer to the random system generator.  May be null.
+    void evaluate(Generator* generator = nullptr);
 
     /// @brief Return the age of the star.
     /// @return Age of the star, in years.
-    double age() const { return stellarAge; }
+    double getAge() const { return ageYears; }
 
-    /// @brief Initialize a star.
+    /// @brief Get the valid range for dust forming around this star.
+    /// @return The min/max valid dust distance, in AU.
+    const BandLimit_t& getDustZone() const { return dustZone; }
+
+    /// @brief Returns the ideal semimajor axis for an earth-like planet.
+    /// @return Ideal SMA, in AU.
+    double getEcosphere() const { return ecosphere; }
+
+    /// @brief Get the habitable zone for this star.
+    /// @return The min/max habitable zone distance, in AU.
+    const BandLimit_t& getHabitableZone() const { return habitableZone; }
+
+    /// @brief Returns the luminosity of the star in units of Solar luminosity.
+    /// @return Stellar luminosity, Sol = 1.0.
+    double getLuminosity() const { return luminositySolar; }
+
+    /// @brief Returns the mass of the star in units of Solar mass.
+    /// @return Stellar mass, Sol = 1.0.
+    double getMass() const { return massSolar; }
+
+    /// @brief Get the name of the star.
+    /// @return The name.  If no name was specified, this return value will be an empty string.
+    const std::string& getName() const { return name; }
+
+    /// @brief Get the valid range for protoplanets forming around this star.
+    /// @return The min/max valid protoplanet distance, in AU.
+    const BandLimit_t& getProtoplanetZone() const { return protoplanetZone; }
+
+    /// @brief Get the minimum distance from the star where water ice may exist in a vacuum.
+    /// @return The snow line, in AU.
+    double getSnowLine() const { return snowLine; }
+
+    /// @brief Return the radius of the star in Solar radii.
+    /// @return Solar radius of the star.
+    double getSolarRadius() const { return radiusSolar; }
+
+    /// @brief Get the star's classification and subtype.
+    /// @return The star's type.
+    StarType_t&& getStarType() const { return std::make_pair(type, subtype); }
+
+    /// @brief Given a mass, return the star type that corresponds best with that mass.
     /// 
-    /// @note The mass of the star should be constrained to the range [0.6, 1.3] for good results.  The algorithm to
-    /// convert mass to luminosity is untested outside that range.
-    /// @param config The Config structure.
-    /// @param state GenerationState.  Used strictly for random number generation.
-    void init(const Config* config, GenerationState* state);
+    /// Values outside the supported range will be clamped.
+    /// @note Only main sequence stars are currently supported.
+    /// @param mass The mass of the star, in Solar masses.
+    /// @return The stellar classification for that star.
+    static StarType_t GetStarType(double mass);
 
-    /// @brief Radius of the ideal (Earth-equivalent) ecosphere, in AU.
-    /// @return Ecosphere radius, in AU.
-    double ecosphere() const
-    {
-        return sqrtLum * EcosphereScalar;
-    }
+    /// @brief Place the stellar class of this star in the provided string.
+    /// 
+    /// `output` will receive a three-character designation plus a null
+    /// terminator, ie "G2V".
+    /// 
+    /// If `sizeofOutput` is less than 4, nothing is written.
+    /// @param output The buffer to populate.
+    /// @param sizeofOutput The size of the buffer.
+    void getStellarClass(char* output, size_t sizeofOutput) const;
 
-    /// @brief Returns the minimum distance from the star where dust may be found.
-    /// @return Inner dust limit, in AU.
-    double innerDustLimit() const
-    {
-        return curtMass * InnerDustScalar;
-    }
+    /// @brief Return a string containing the stellar class of the star,
+    /// eg "G2V".
+    /// @param out The string that will receive the stellar class text.
+    void getStellarClass(std::string& out) const;
 
-    /// @brief Returns the inner radius of the habitable zone.
-    /// @return Inner habitable zone, in AU.
-    double innerHabitableZone() const
-    {
-        return sqrtLum * InnerHabitableZoneScalar;
-    }
-
-    /// @brief Returns the minimum distance from the star where planetisimals may form.
-    /// @return Inner planetary limit, in AU.
-    double innerPlanetaryLimit() const
-    {
-        return curtMass * InnerPlanetScalar;
-    }
-
-    /// @brief Returns the minimum distance from the star for dust Zone 2.
-    /// @return Inner Zone 2 radius, in AU.
-    double innerZone2() const
-    {
-        return sqrtLum * InnerZone2Scalar;
-    }
-
-    /// @brief Returns the minimum distance from the star for dust Zone 3.
-    /// @return Inner Zone 3 radius, in AU.
-    double innerZone3() const
-    {
-        return sqrtLum * InnerZone3Scalar;
-    }
-
-    /// @brief Return the luminosity of the star.
-    /// @return Luminosity, Sol = 1.0.
-    double luminosity() const { return stellarLuminosity; }
-
-    /// @brief Return the mass of the star.
-    /// @return Mass, Sol = 1.0.
-    double mass() const { return stellarMass; }
+    /// @brief Return the temperature of the star in Kelvin.
+    /// @return Temperature in Kelvin.
+    double getTemperature() const { return temperatureKelvin; }
 
     /// @brief Classifies the provided distance from the star into one of the three Zones of protoplanetary materials:
     /// 
@@ -197,105 +212,43 @@ class Star
     /// Zone classification from Pollard 1979 by way of Fogg 1985.
     /// @param radius The distance from the star, in AU.
     /// @return The zone, as described.
-    float materialZone(double radius) const
+    float getMaterialZone(double radius) const
     {
-        if (radius < innerZone2())
+        if (radius < zone2.first)
         {
             return 1.0f;
         }
-        else if (radius < outerZone1())
+        else if (radius < zone1.second)
         {
-            return 1.0f + static_cast<float>(InverseLerp(radius, innerZone2(), outerZone1()));
+            return 1.0f + static_cast<float>(InverseLerp(radius, zone2.first, zone1.second));
         }
-        else if (radius < innerZone3())
+        else if (radius < zone3.first)
         {
             return 2.0f;
         }
         else
         {
             // InverseLerp clamps to 1.0 for `radius` > outerZone2().
-            return 2.0f + static_cast<float>(InverseLerp(radius, innerZone3(), outerZone2()));
+            return 2.0f + static_cast<float>(InverseLerp(radius, zone3.first, zone2.second));
         }
     }
 
-    /// @brief Returns the maximum distance from the star where dust may be found.
-    /// @return Outer dust limit, in AU.
-    double outerDustLimit() const
-    {
-        return curtMass * OuterDustScalar;
-    }
-
-    /// @brief Returns the outer radius of the habitable zone.
-    /// @return Outer habitable zone, in AU.
-    double outerHabitableZone() const
-    {
-        return sqrtLum * OuterHabitableZoneScalar;
-    }
-
-    /// @brief Returns the maximum distanbce from the star where planetisimals may form.
-    /// @return Outer planetary limit, in AU.
-    double outerPlanetaryLimit() const
-    {
-        return outerPlanetaryR;
-    }
-
-    /// @brief Returns the maximum distance from the star for dust Zone 1.
-    /// @return Outer Zone 1 radius, in AU.
-    double outerZone1() const
-    {
-        return sqrtLum * OuterZone1Scalar;
-    }
-
-    /// @brief Returns the maximum distance from the star for dust Zone 2.
-    /// @return Outer Zone 2 radius, in AU.
-    double outerZone2() const
-    {
-        return sqrtLum * OuterZone2Scalar;
-    }
-
-    /// @brief Returns a very rough guesstimate of the radius of the star based on mass.
-    /// @return 
-    double radius() const
-    {
-        return pow(stellarMass, 0.78) * SolarRadiusKm;
-    }
-
-    /// @brief Returns the radius that marks the snow line.
-    /// @return Snow line radius, in AU.
-    double snowLine() const
-    {
-        return sqrtLum * SnowLineScalar;
-    }
-
-    /// @brief Place the stellar class of this star in the provided string.
+    /// @brief Classifies the radius into one of the orbital zones.
     /// 
-    /// `output` will receive a three-character designation plus a null
-    /// terminator, ie "G2V".
-    /// 
-    /// If `sizeofOutput` is less than 4, nothing is written.
-    /// @param output The buffer to populate.
-    /// @param sizeofOutput The size of the buffer.
-    void stellarClass(char* output, size_t sizeofOutput) const;
-
-    /// @brief Return a string containing the stellar class of the star,
-    /// eg "G2V".
-    /// @param out The string that will receive the stellar class text.
-    void stellarClass(std::string& out) const;
-
-    /// @brief Classifies the radius into one of the orbital zones
+    /// These zones do not correspond to the material zones.
     /// @param radius The distance from the star, in AU.
     /// @return The OrbitalZone in which the radius resides.
-    OrbitalZone zone(double radius) const
+    OrbitalZone getOrbitalZone(double radius) const
     {
-        if (radius < innerHabitableZone())
+        if (radius < habitableZone.first)
         {
             return OrbitalZone::Inner;
         }
-        else if (radius < outerHabitableZone())
+        else if (radius < habitableZone.second)
         {
             return OrbitalZone::Habitable;
         }
-        else if (radius < snowLine())
+        else if (radius < snowLine)
         {
             return OrbitalZone::Middle;
         }
@@ -305,32 +258,101 @@ class Star
         }
     }
 
+    /// @brief Reset all values to defaults.
+    void reset()
+    {
+        name.clear();
+        type = StarClassification::G_V;
+        subtype = 2;
+        evaluated = false;
+        ageYears = 0.0;
+        temperatureKelvin = 0.0f;
+        luminositySolar = 0.0;
+        radiusSolar = 0.0;
+        massSolar = 0.0;
+        ecosphere = 0.0;
+        snowLine = 0.0;
+        habitableZone = std::make_pair(0.0, 0.0);
+        dustZone = protoplanetZone = zone1 = zone2 = zone3 = std::make_pair(0.0, 0.0);
+        evaluated = false;
+    }
+
+    /// @brief Set the age of the star, in years.
+    /// 
+    /// If left at default, a middling age will be selected when evaluate() is called.
+    /// Otherwise, it is clamped to a valid range.
+    /// 
+    /// @note: This value may be changed after evaluation, but that is not advised, since
+    /// the age of the star affects planetary development.  Using absurd values could lead
+    /// to undesirable side-effects.  Setting the age prior to evaluate() will guarantee
+    /// sane values are selected.
+    /// @param ageYears_ The age of the star, in years.
+    void setAge(double ageYears_) { ageYears = ageYears_; }
+
+    /// @brief Set the name of the star.
+    /// 
+    /// If no name is specified when the solar system is generated, the star will inherit
+    /// the solar system's name.
+    /// 
+    /// The name may be changed once a Star has been added to a SolarSystem using SolarSystem::setStarName().
+    /// @param name_ The new name of the star.
+    void setName(const std::string& name_) { name = name_; }
+
+    /// @brief Set the stellar type of this star.  Resets the derived traits.
+    /// 
+    /// Invalid subtype_ values will cause setType to fail, and reset the star to defaults.
+    /// 
+    /// Class O_V stars have valid subtype_ in the range of 3 to 9.  0 to 2 are invalid.
+    /// @param type_ The primary classification of the star.
+    /// @param subtype_ The subtype of the star.  Valid ranges are 0 to 9, inclusive.
+    void setType(StarClassification type_, int32_t subtype_)
+    {
+        reset();
+        if (subtype_ < 0 || subtype_ > 9)
+        {
+            return;
+        }
+        else if (type_ == StarClassification::O_V && subtype_ < 3)
+        {
+            return;
+        }
+
+        type = type_;
+        subtype = subtype_;
+    }
+
     private:
+    //--- Primary stellar traits
+    std::string name;
 
-    //--- Basic/stored stats
+    StarClassification type = StarClassification::G_V; //!< Star type (classification/sequence)
+    int32_t subtype = 2; //!< Star subtype.
 
-    /// @brief Mass of the star in solar masses.
-    double stellarMass;
+    //--- Derived stellar traits
+    bool evaluated = false; //!< Have the derived traits been evaluated?
 
-    /// @brief Luminosity of the star, Sol = 1.0.
-    double stellarLuminosity;
+    double ageYears = 0.0; //!< Age of the star, in years.
 
-    /// @brief Age of the star in years.
-    double stellarAge;
+    float temperatureKelvin = 0.0f; //!< Temperature of the star's surface, in Kelvin.
 
-    /// @brief Maximum age of the star, in years.
-    double lifespan;
+    double luminositySolar = 0.0; //!< Luminosity of the star, in Solar luminosity.
 
-    //--- Derived stats
+    double radiusSolar = 0.0; //!< Radius of the star, in Solar radii.
 
-    /// @brief Mass ^ 1/3, used for some radius computations.
-    double curtMass;
+    double massSolar = 0.0; //!< Mass of the star, in Solar masses.
 
-    /// @brief Luminosity ^ 1/2, used for some radius computations.
-    double sqrtLum;
+    double ecosphere = 0.0; //!< Distance from the star best suited for Earth-like conditions, in AU.
 
-    /// @brief Outer planetary formation limit, in AU.  Recorded in case the caller specified an override value.
-    double outerPlanetaryR;
+    double snowLine = 0.0; //!< Minimum distance from the star where water ice may exist in a vaccuum, in AU.
+
+    BandLimit_t habitableZone; //!< The habitable zone of the star, in AU.
+
+    BandLimit_t dustZone; //!< The distance where dust may form, in AU.
+    BandLimit_t protoplanetZone; //!< The distance where protoplanets may accrete, in AU.
+
+    BandLimit_t zone1; //!< Zone 1 region, in AU.
+    BandLimit_t zone2; //!< Zone 2 region, in AU.
+    BandLimit_t zone3; //!< Zone 3 region, in AU.
 };
 
 }

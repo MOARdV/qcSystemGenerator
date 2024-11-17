@@ -26,7 +26,7 @@
 
 #include <qcSysGen/Config.h>
 #include <qcSysGen/Equations.h>
-#include <qcSysGen/GenerationState.h>
+#include <qcSysGen/Generator.h>
 #include <qcSysGen/Star.h>
 
 #include <assert.h>
@@ -34,6 +34,34 @@
 
 namespace
 {
+
+// Constants used during evaluation
+
+/// @brief Factor used to convert water vapor mass to cloud coverage, km^2 / kg
+static constexpr double CloudCoverageFactor = 1.839e-8;
+
+/// @brief Parameter used for determinine the effect of greenhouse gases on temperature.
+///
+/// from Hart, eq.20
+static constexpr float EarthConvectionFactor = 0.43f;
+
+/// @brief The minimum ratio of gas mass to total mass to qualify as a gaseous planet
+static constexpr double GaseousPlanetThreshold = 0.05;
+
+/// @brief Albedo used to determine if the planet has a greenhouse effect.
+static constexpr float GreenhouseTriggerAlbedo = 0.20f;
+
+/// @brief The minimum ratio of gas mass to total mass to qualify as an ice planet
+static constexpr double IcePlanetThreshold = 0.000001;
+
+/// @brief Used in planetary day length computations.  cm^2/s^2 * g
+static constexpr double J = 1.46e-19;
+
+/// @brief Used to determine cloud coverage.  1/Kelvin (~=14.33)
+static constexpr double Q2_36 = 0.0698;
+
+/// @brief 3x the standard deviation of the solar system's 4 gaseous worlds' albedo.
+static constexpr float ThreeSigma_Albedo_GasGiant = 0.1185f;
 
 using qc::SystemGenerator::Gas;
 
@@ -87,6 +115,18 @@ float BoilingPoint(float surfacePressureMb)
 
     // TODO: Where do the magic numbers come from?
     return static_cast<float>(1.0 / ((log(surfacePressureBars) / -5050.5) + (1.0 / 373.0)));
+}
+
+//----------------------------------------------------------------------------
+/// @brief Returns the effective temperature based on the specified albedo and relative distance from the ecosphere.
+/// @param distanceRatio The normalized distance of the planet's SMA relative to the star's ecosphere.
+/// @param albedo Planet's albedo, in the range [0, 1].
+/// @return Effective temperature, in Kelvin.
+float EffectiveTemperature(double distanceRatio, float albedo)
+{
+    return static_cast<float>(sqrtf(static_cast<float>(1.0 / distanceRatio))
+                              * powf((1.0f - albedo) / (1.0f - qc::SystemGenerator::Albedo_Earth), 0.25f)
+                              * qc::SystemGenerator::EarthEffectiveTemperature);
 }
 
 //----------------------------------------------------------------------------
@@ -176,92 +216,24 @@ namespace qc
 namespace SystemGenerator
 {
 
+#if 0
 //----------------------------------------------------------------------------
-Planet::Planet() :
-    type(PlanetType::Unknown),
-    planetNo(0),
-    semiMajorAxis(0.0),
-    solarSMA(0.0),
-    eccentricity(0.0f),
-    solarEccentricity(0.0f),
-    earthSimilarityIndex(0.0f),
-    totalMass(0.0),
-    resonant(false),
-    spinResonanceFactor(0.0f),
-    orbitalPeriod(0.0),
-    day(0.0f),
-    dustMass(0.0),
-    gasMass(0.0),
-    radius(0.0f),
-    axialTilt(0.0f),
-    albedo(0.0f),
-    minMolecularWeight(0.0f),
-    volatileGasInventory(0.0),
-    plDensity(0.0f),
-    runawayGreenhouse(false),
-    rmsVelocity(0.0f),
-    exosphereTemp(0.0f),
-    escapeVel(0.0f),
-    surfaceAccel(0.0f),
-    surfacePress(0.0f),
-    boilingPoint(0.0f),
-    meanSurfaceTemp(0.0f),
-    highTemp(0.0f),
-    lowTemp(0.0f),
-    maxTemp(0.0f),
-    minTemp(0.0f),
-    hydrosphere(0.0f),
-    cloudCoverage(0.0f),
-    iceCoverage(0.0f),
-    star(nullptr)
+void Planet::addMoon(const Planet& m)
 {
-
+    for (PlanetVector::const_iterator i = moon.begin(); i != moon.end(); ++i)
+    {
+        if (m.getSemimajorAxis() < i->getSemimajorAxis())
+        {
+            moon.insert(i, m);
+            return;
+        }
+    }
+    moon.emplace_back(m);
 }
+#endif
 
 //----------------------------------------------------------------------------
-Planet::Planet(double sma, float e, double dustMassComponent, double gasMassComponent) :
-    type(PlanetType::Unknown),
-    planetNo(0),
-    semiMajorAxis(sma),
-    solarSMA(sma),
-    eccentricity(e),
-    solarEccentricity(e),
-    earthSimilarityIndex(0.0f),
-    totalMass(dustMassComponent + gasMassComponent),
-    resonant(false),
-    spinResonanceFactor(0.0f),
-    orbitalPeriod(0.0),
-    day(0.0f),
-    dustMass(dustMassComponent),
-    gasMass(gasMassComponent),
-    radius(0.0f),
-    axialTilt(0.0f),
-    albedo(0.0f),
-    minMolecularWeight(0.0f),
-    volatileGasInventory(0.0),
-    plDensity(0.0f),
-    runawayGreenhouse(false),
-    rmsVelocity(0.0f),
-    exosphereTemp(0.0f),
-    escapeVel(0.0f),
-    surfaceAccel(0.0f),
-    surfacePress(0.0f),
-    boilingPoint(0.0f),
-    meanSurfaceTemp(0.0f),
-    highTemp(0.0f),
-    lowTemp(0.0f),
-    maxTemp(0.0f),
-    minTemp(0.0f),
-    hydrosphere(0.0f),
-    cloudCoverage(0.0f),
-    iceCoverage(0.0f),
-    star(nullptr)
-{
-
-}
-
-//----------------------------------------------------------------------------
-float Planet::calculateAlbedo(GenerationState* state) const
+float Planet::calculateAlbedo(Generator& generator) const
 {
     float waterFraction = hydrosphere;
     float iceFraction = iceCoverage;
@@ -279,17 +251,17 @@ float Planet::calculateAlbedo(GenerationState* state) const
     iceFraction = std::max(0.0f, iceFraction - cloudAdjustment);
     rockFraction = std::max(0.0f, rockFraction - cloudAdjustment);
 
-    const bool airless = (surfacePress == 0.0f);
-    const float waterAlbedo = waterFraction * ((airless) ? 0.0f : state->randomNear(Albedo_Water, Albedo_Water * 0.2f));
-    const float iceAlbedo = iceFraction * ((airless) ? state->randomNear(Albedo_IceAirless, Albedo_IceAirless * 0.4f) : state->randomNear(Albedo_Ice, Albedo_Ice * 0.1f));
-    const float rockAlbedo = rockFraction * ((airless) ? state->randomNear(Albedo_RockAirless, Albedo_RockAirless * 0.3f) : state->randomNear(Albedo_Rock, Albedo_Rock * 0.1f));
-    const float cloudAlbedo = cloudCoverage * ((airless) ? 0.0f : state->randomNear(Albedo_Cloud, Albedo_Cloud * 0.2f));
+    const bool airless = (surfacePressure == 0.0f);
+    const float waterAlbedo = waterFraction * ((airless) ? 0.0f : generator.randomNear(Albedo_Water, Albedo_Water * 0.2f));
+    const float iceAlbedo = iceFraction * ((airless) ? generator.randomNear(Albedo_IceAirless, Albedo_IceAirless * 0.4f) : generator.randomNear(Albedo_Ice, Albedo_Ice * 0.1f));
+    const float rockAlbedo = rockFraction * ((airless) ? generator.randomNear(Albedo_RockAirless, Albedo_RockAirless * 0.3f) : generator.randomNear(Albedo_Rock, Albedo_Rock * 0.1f));
+    const float cloudAlbedo = cloudCoverage * ((airless) ? 0.0f : generator.randomNear(Albedo_Cloud, Albedo_Cloud * 0.2f));
 
     return waterAlbedo + iceAlbedo + rockAlbedo + cloudAlbedo;
 }
 
 //----------------------------------------------------------------------------
-void Planet::calculateDayLength()
+void Planet::calculateDayLength(const EvaluationState& evaluationState)
 {
     // TODO: This doesn't work for moons
 
@@ -304,26 +276,25 @@ void Planet::calculateDayLength()
     // This next calculation determines how much the planet's rotation is
     // slowed by the presence of the star.
 
-    // May not need radiusCm, since it's divided by earth radius, which can be km as well.
     const double deltaAngularVelocity = ChangeInEarthAngularVelocity *
-        (plDensity / EarthDensity) *
-        (radius / (EarthRadiusKm)) *
+        (density / EarthDensity) *
+        (radius / EarthRadiusKm) *
         (EarthMassInGrams / massGr) *
-        pow(star->mass(), 2.0) *
-        (1.0 / pow(semiMajorAxis, 6.0));
-    const double angularVelocity = baseAngularVelocity + deltaAngularVelocity * star->age();
+        pow(evaluationState.stellarMass, 2.0) *
+        (1.0 / pow(semimajorAxis, 6.0));
+    const double angularVelocity = baseAngularVelocity + deltaAngularVelocity * evaluationState.stellarAge;
 
     if (angularVelocity <= 0.0)
     {
-        day = static_cast<float>(yearHours);
+        dayLength = static_cast<float>(yearHours);
     }
     else
     {
-        day = static_cast<float>(RadiansPerCircle / (SecondsPerHour * angularVelocity));
+        dayLength = static_cast<float>(RadiansPerCircle / (SecondsPerHour * angularVelocity));
     }
 
     spinResonanceFactor = 0.0f;
-    if (day >= yearHours)
+    if (dayLength >= yearHours)
     {
         resonant = true;
         if (eccentricity > 0.1)
@@ -335,18 +306,17 @@ void Planet::calculateDayLength()
             spinResonanceFactor = 1.0f;
         }
 
-        day = static_cast<float>(spinResonanceFactor * yearHours);
+        dayLength = static_cast<float>(spinResonanceFactor * yearHours);
     }
 }
 
 //----------------------------------------------------------------------------
-void Planet::calculateEarthSimilarity()
+float Planet::calculateEarthSimilarity() const
 {
     if (isGaseous() || type == PlanetType::AsteroidBelt)
     {
         // Early out - too dissimilar to consider.
-        earthSimilarityIndex = 0.0f;
-        return;
+        return 0.0f;
     }
 
     // Criteria for earth similarity.  All weights from
@@ -358,93 +328,77 @@ void Planet::calculateEarthSimilarity()
     const float radiusRating = powf(1.0f - static_cast<float>(fabs(radius - EarthRadiusKm) / (radius + EarthRadiusKm)), RadiusWeight / NumberOfWeights);
 
     static constexpr float DensityWeight = 1.07f;
-    const float densityRating = powf(1.0f - static_cast<float>(fabs(plDensity - EarthDensity) / (plDensity + EarthDensity)), DensityWeight / NumberOfWeights);
+    const float densityRating = powf(1.0f - static_cast<float>(fabs(density - EarthDensity) / (density + EarthDensity)), DensityWeight / NumberOfWeights);
 
     static constexpr float EvWeight = 0.70f;
-    const float escapeVelocityRating = powf(1.0f - fabsf(escapeVel - EarthEscapeVelocity) / (escapeVel + EarthEscapeVelocity), EvWeight / NumberOfWeights);
+    const float escapeVelocityRating = powf(1.0f - fabsf(escapeVelocity - EarthEscapeVelocity) / (escapeVelocity + EarthEscapeVelocity), EvWeight / NumberOfWeights);
 
     static constexpr float TemperatureWeight = 5.58f;
-    const float surfaceTempRating = powf(1.0f - fabsf(meanSurfaceTemp - EarthAverageTemperature) / (meanSurfaceTemp + EarthAverageTemperature), TemperatureWeight / NumberOfWeights);
+    const float surfaceTempRating = powf(1.0f - fabsf(meanSurfaceTemperature - EarthAverageTemperature) / (meanSurfaceTemperature + EarthAverageTemperature), TemperatureWeight / NumberOfWeights);
 
     float oxygenRating = 1.0f;
     if (!atmosphere.empty())
     {
         // TODO: Refine this if I can find guidance on how the exponents were derived.
         const auto o2 = std::find_if(atmosphere.begin(), atmosphere.end(), [](const AtmosphereComponent& c) { return c.gas == Gas::Oxygen; });
-        const float ppo = surfacePress * ((o2 == atmosphere.end()) ? 0.0f : o2->fraction);
+        const float ppo = surfacePressure * ((o2 == atmosphere.end()) ? 0.0f : o2->fraction);
         // Partial pressure of oxygen.  Exponent is still work-in-progress.
         static constexpr float PpoWeight = 2.5f;
         oxygenRating = powf(1.0f - fabsf(ppo - EarthPartialPressureOxygen) / (ppo + EarthPartialPressureOxygen), PpoWeight / NumberOfWeights);
     }
 
-    earthSimilarityIndex = radiusRating * densityRating * escapeVelocityRating * surfaceTempRating * oxygenRating;
+    return radiusRating * densityRating * escapeVelocityRating * surfaceTempRating * oxygenRating;
 }
 
 //----------------------------------------------------------------------------
-void Planet::calculateGases()
+void Planet::calculateGases(const EvaluationState& evaluationState)
 {
-    if (surfacePress > 0.0f)
+    atmosphere.clear();
+
+    if (surfacePressure > 0.0f)
     {
-        //    long double* amount = (long double*)calloc((max_gas + 1), sizeof(long double));
-        //    long double	totamount = 0;
-        //    long double pressure = planet->surf_pressure / MILLIBARS_PER_BAR;
-        const float pressure = surfacePress * BarPerMillibar;
-        //    int			n = 0;
-        //    int			i;
-        const float starAgeOver2B = static_cast<float>(star->age() / 2.0e9);
+        const float pressure = surfacePressure * BarPerMillibar;
+        const float starAgeOver2B = static_cast<float>(evaluationState.stellarAge / 2.0e9);
 
         float totalAmount = 0.0f;
 
         for (int i = 0; i < gasesCount; ++i)
         {
-            //        long double yp = gases[i].boil /
-            //            (373. * ((log((pressure)+0.001) / -5050.5) +
-            //                (1.0 / 373.)));
             const float yp = gases[i].boilingPoint /
                 (373.0f * ((logf(pressure + 0.001f) / -5050.5f) + (1.0f / 373.0f)));
 
-            if ((yp >= 0.0f && yp < lowTemp)
+            if ((yp >= 0.0f && yp < lowTemperature)
                 && (gases[i].atomicWeight >= minMolecularWeight))
             {
-                const float vrms = static_cast<float>(RMSVelocity(gases[i].atomicWeight, exosphereTemp));
-                const float pvrms = powf(1.0f / (1.0f + vrms / escapeVel), static_cast<float>(star->age() / 1.0e9));
-                float abund = gases[i].abundS; /* gases[i].abunde */
+                const float vrms = static_cast<float>(RMSVelocity(gases[i].atomicWeight, exosphereTemperature));
+                const float pvrms = powf(1.0f / (1.0f + vrms / escapeVelocity), static_cast<float>(evaluationState.stellarAge / 1.0e9));
+                float abund = gases[i].abundS;
                 float react = 1.0f;
                 float fract = 1.0f;
                 float pres2 = 1.0f;
 
                 // TODO: Store 1.0f / (1.0f + reactivity) in the structures, instead of computing it every run
-    //            if (strcmp(gases[i].symbol, "Ar") == 0)
                 if (gases[i].chemical == Gas::Argon)
                 {
-                    react = 0.15f * static_cast<float>(star->age() / 4.0e9);
+                    react = 0.15f * static_cast<float>(evaluationState.stellarAge / 4.0e9);
                 }
-                //            else if (strcmp(gases[i].symbol, "He") == 0)
                 else if (gases[i].chemical == Gas::Helium)
                 {
                     abund *= 0.001f + static_cast<float>(gasMass / totalMass);
                     pres2 = (0.75f + pressure);
                     react = powf(1.0f / (1.0f + gases[i].reactivity), starAgeOver2B * pres2);
                 }
-                //            else if ((strcmp(gases[i].symbol, "O") == 0 ||
-                //                strcmp(gases[i].symbol, "O2") == 0) &&
-                //                sun->age > 2e9 &&
-                //                planet->surf_temp > 270 && planet->surf_temp < 400)
                 else if (gases[i].chemical == Gas::Oxygen &&
-                         star->age() > 2.0e9 &&
+                         evaluationState.stellarAge > 2.0e9 &&
                          // TODO: Where do these come from?
-                         meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
+                         meanSurfaceTemperature > 270.0f && meanSurfaceTemperature < 400.0f)
                 {
-                    /*	pres2 = (0.65 + pressure/2);			Breathable - M: .55-1.4 	*/
                     pres2 = (0.89f + pressure / 4.0f); /*	Breathable - M: .6 -1.8 	*/
                     react = powf(1.0f / (1.0f + gases[i].reactivity), static_cast<float>(pow(starAgeOver2B, 0.25)) * pres2);
                 }
-                //            else if (strcmp(gases[i].symbol, "CO2") == 0 &&
-                //                sun->age > 2e9 &&
-                //                planet->surf_temp > 270 && planet->surf_temp < 400)
                 else if (gases[i].chemical == Gas::CarbonDioxide &&
-                         star->age() > 2.0e9 &&
-                         meanSurfaceTemp > 270.0f && meanSurfaceTemp < 400.0f)
+                         evaluationState.stellarAge > 2.0e9 &&
+                         meanSurfaceTemperature > 270.0f && meanSurfaceTemperature < 400.0f)
                 {
                     pres2 = 0.75f + pressure;
                     react = powf(1.0f / (1.0f + gases[i].reactivity), static_cast<float>(pow(starAgeOver2B, 0.5)) * pres2);
@@ -458,7 +412,7 @@ void Planet::calculateGases()
 
                 const float fraction = (1.0f - (minMolecularWeight / gases[i].atomicWeight));
 
-                AtmosphereComponent c = { gases[i].chemical, abund * pvrms * react * fract };
+                const AtmosphereComponent c = { gases[i].chemical, abund * pvrms * react * fract };
                 if (c.fraction > 0.0f)
                 {
                     atmosphere.emplace_back(c);
@@ -476,204 +430,57 @@ void Planet::calculateGases()
 }
 
 //----------------------------------------------------------------------------
-void Planet::calculateSurfaceConditions(bool initialize, GenerationState* state)
+void Planet::calculateSurfacePressure(Generator& generator, const EvaluationState& evaluationState)
 {
-    if (initialize)
-    {
-        albedo = Albedo_Earth;
-
-        const float effectiveTemp = effectiveTemperature(albedo);
-        const float greenhouseTemp = greenhouseRise(effectiveTemp);
-        meanSurfaceTemp = effectiveTemp + greenhouseTemp;
-
-        setTemperatureRange();
-    }
-
-    if (runawayGreenhouse && maxTemp < boilingPoint)
-    {
-        // Planet is too cool for runaway greenhouse, so re-evaluate some things
-        runawayGreenhouse = false;
-
-        calculateSurfacePressure(state);
-    }
-
-    // Burke 1985 notes:
-    // This function is Fogg's eq.22.	 Given the volatile gas inventory and
-    // planetary radius of a planet (in Km), this function returns the
-    // fraction of the planet covered with water.
-    float newHydrosphere = std::min(1.0f,
-                                    static_cast<float>((EarthHydrosphere * volatileGasInventory / 1000.0) * pow(EarthRadiusKm / radius, 2.0)));
-
-    // Burke 1985 notes:
-    // Given the surface temperature of a planet (in Kelvin), this function
-    // returns the fraction of cloud cover available.  This is Fogg's eq.23.
-    // See Hart in "Icarus" (vol 33, pp23 - 39, 1978) for an explanation.
-    // This equation is Hart's eq.3.
-    // I have modified it slightly using constants and relationships from
-    // Glass's book "Introduction to Planetary Geology", p.46.
-    // The 'CLOUD_COVERAGE_FACTOR' is the amount of surface area on Earth
-    // covered by one Kg. of cloud.
-    float newCloudCover;
-    if (minMolecularWeight > Weight_WaterVapor)
-    {
-        newCloudCover = 0.0f;
-    }
-    else
-    {
-        // TODO: Look up the papers listed in Burke 1985 to see if I can reconcile this
-        // equation.
-        const double surfaceArea = 4.0 * PI * (radius * radius);
-
-        // Mass of water, in grams
-        const double hydroMass = newHydrosphere * surfaceArea * EarthWaterMassPerKm2;
-
-        // Mass of water vapor - original variable is listed as kg, but I don't see why it is, since we divided
-        // mass in grams by 100,000,000
-        const double waterVapor = (0.00000001 * hydroMass) * exp(Q2_36 * (meanSurfaceTemp - EarthAverageTemperature));
-
-        newCloudCover = std::min(1.0f, static_cast<float>(CloudCoverageFactor * waterVapor / surfaceArea));
-    }
-
-    // Burke 1985 notes:
-    // Given the surface temperature of a planet (in Kelvin), this function
-    // returns the fraction of the planet's surface covered by ice.  This is
-    // Fogg's eq.24.  See Hart[24] in Icarus vol.33, p.28 for an explanation.
-    // I have changed a constant from 70 to 90 in order to bring it more in
-    // line with the fraction of the Earth's surface covered with ice, which
-    // is approximatly .016 (=1.6%).
-    float newIceCover = std::min(1.5f * newHydrosphere, powf(((328.0f - meanSurfaceTemp) / 90.0f), 5.0f));
-
-    // Reconcile new results with state of the planet and apply sanity clamps
-    newIceCover = std::max(0.0f, std::min(1.0f, newIceCover));
-
-    if (newHydrosphere + newIceCover > 1.0f)
-    {
-        newHydrosphere = 1.0f - newIceCover;
-    }
-
-    if (runawayGreenhouse && surfacePress > 0.0f)
-    {
-        cloudCoverage = 1.0f;
-    }
-
-    if (highTemp >= boilingPoint
-        && !initialize
-        // Not sure why the integer conversions here, other than to avoid floating point vagaries
-        && !((int)day == (int)(orbitalPeriod * HoursPerDay) || resonant))
-    {
-        // Boil-off
-        hydrosphere = 0.0f;
-        newHydrosphere = 0.0f;
-        cloudCoverage = (minMolecularWeight > Weight_WaterVapor) ? 0.0f : 1.0f;
-    }
-
-    if (meanSurfaceTemp < FreezingPointWater - 3.0)
-    {
-        // Frozen
-        hydrosphere = 0.0f;
-        newHydrosphere = 0.0f;
-    }
-
-    if (initialize)
-    {
-        hydrosphere = newHydrosphere;
-        cloudCoverage = newCloudCover;
-        iceCoverage = newIceCover;
-    }
-    else
-    {
-        hydrosphere = (2.0f * hydrosphere + newHydrosphere) / 3.0f;
-        cloudCoverage = (2.0f * cloudCoverage + newCloudCover) / 3.0f;
-        iceCoverage = (2.0f * iceCoverage + newIceCover) / 3.0f;
-
-        if (hydrosphere + iceCoverage > 1.0f)
-        {
-            hydrosphere = 1.0f - iceCoverage;
-        }
-    }
-
-    const float newAlbedo = calculateAlbedo(state);
-
-    if (initialize)
-    {
-        albedo = newAlbedo;
-    }
-    else
-    {
-        albedo = (2.0f * albedo + newAlbedo) / 3.0f;
-    }
-
-    // TODO: Consolidate into a single method?  effectiveTemperature is used only
-    // in conjunction with greenhouseRise
-    const float effectiveTemp = effectiveTemperature(albedo);
-    const float greenhouseTemp = greenhouseRise(effectiveTemp);
-    const float newSurfaceTemp = effectiveTemp + greenhouseTemp;
-
-    if (initialize)
-    {
-        meanSurfaceTemp = newSurfaceTemp;
-    }
-    else
-    {
-        meanSurfaceTemp = (2.0f * meanSurfaceTemp + newSurfaceTemp) / 3.0f;
-    }
-
-    setTemperatureRange();
-}
-
-//----------------------------------------------------------------------------
-void Planet::calculateSurfacePressure(GenerationState* state)
-{
-    volatileGasInventory = volatileInventory(state);
+    volatileGasInventory = volatileInventory(generator, evaluationState);
     if (volatileGasInventory > 0.0)
     {
         const double radiusRatio = EarthRadiusKm / radius;
 
-        surfacePress = static_cast<float>(
-            volatileGasInventory * surfaceGravity() *
+        surfacePressure = static_cast<float>(
+            volatileGasInventory * getSurfaceGravity() *
             EarthSurfacePressure * BarPerMillibar /
             (radiusRatio * radiusRatio)
             );
 
-        boilingPoint = BoilingPoint(surfacePress);
+        boilingPoint = BoilingPoint(surfacePressure);
     }
     else
     {
-        surfacePress = boilingPoint = 0.0f;
+        surfacePressure = boilingPoint = 0.0f;
     }
 }
 
-
 //----------------------------------------------------------------------------
-float Planet::effectiveTemperature(float albedo) const
+void Planet::evaluate(Generator& generator, const Star& star)
 {
-    return static_cast<float>(sqrt(star->ecosphere() / solarSMA)
-                              * powf((1.0f - albedo) / (1.0f - Albedo_Earth), 0.25f)
-                              * EarthEffectiveTemperature);
-}
+    // TODO: Don't overwrite manually-set values.  Which ones are those, and how do I split them out?
+    // TODO: Synthesize dust mass / gas mass for manual worlds.
+#ifdef ALLOW_DEBUG_PRINTF
+    if (generator.getVerbose())
+    {
+        printf(__FUNCTION__"() @ %.3lfAU:\n", semimajorAxis);
+    }
+#endif
 
-//----------------------------------------------------------------------------
-void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetNumber, const Config* config, GenerationState* state)
-{
-    char text[256]; // sprintf buffer
+    EvaluationState evaluationState;
+    evaluationState.ecosphereRatio = semimajorAxis / star.getEcosphere();
+    evaluationState.stellarMass = star.getMass();
+    evaluationState.stellarAge = star.getAge();
+    evaluationState.materialZone = star.getMaterialZone(semimajorAxis);
 
-    star = centralStar;
-    planetNo = planetNumber;
-    //atmosphere = nullptr;
+    orbitalPeriod = Period(semimajorAxis, totalMass, star.getMass());
 
-    // Distance of this planet or moon from the star.
-    solarSMA = (planet != nullptr) ? planet->sma() : semiMajorAxis;
-    solarEccentricity = (planet != nullptr) ? planet->e() : eccentricity;
+    periapsis = semimajorAxis * (1.0f - eccentricity);
+    apoapsis = semimajorAxis * (1.0f + eccentricity);
 
-    orbitalPeriod = Period(semiMajorAxis, totalMass, (planet) ? planet->mass() : star->mass());
+    orbitalDominance = OrbitalDominance(totalMass, semimajorAxis);
 
-    axialTilt = (config->randomAxialTilt) ? state->randomTilt(solarSMA) : 0.0f;
+    axialTilt = generator.randomTilt(semimajorAxis);
 
-    // Planet's SMA scaled such that the star's ecosphere is 1.0
-    const double ecosphereRelativeSMA = solarSMA / star->ecosphere();
-    exosphereTemp = static_cast<float>(EarthExosphereTemperature / (ecosphereRelativeSMA * ecosphereRelativeSMA));
+    exosphereTemperature = static_cast<float>(EarthExosphereTemperature / (evaluationState.ecosphereRatio * evaluationState.ecosphereRatio));
 
-    rmsVelocity = static_cast<float>(RMSVelocity(Weight_MolecularNitrogen, exosphereTemp));
+    rmsVelocity = static_cast<float>(RMSVelocity(Weight_MolecularNitrogen, exosphereTemperature));
 
     // Do some preliminary computations on the planet.  These steps will be used to see if the results of
     // accretion were sufficient to create a gaseous planet.  If the mass is below the critical limit,
@@ -682,26 +489,26 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
     // TODO: Do I need to bother checking CriticalLimit?  Gas isn't retained unless we've passed it.
     // Or do I bother with the 5% threshold, since I see planets getting swept up by the gas/total mass test in the
     // next if block.
-    if (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity()) && (gasMass / mass()) > GaseousPlanetThreshold)
+    if (dustMass > CriticalLimit(semimajorAxis, eccentricity, star.getLuminosity()) && (gasMass / totalMass) > GaseousPlanetThreshold)
     {
         // Assume it's a successful gas giant
-        radius = static_cast<float>(KothariRadius(totalMass, solarSMA, true, star));
-        escapeVel = static_cast<float>(EscapeVelocity(totalMass, radius));
-        surfaceAccel = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
+        radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, true, evaluationState.materialZone));
+        escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
+        surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-        minMolecularWeight = static_cast<float>(MinimumMolecularWeight(this, star));
+        minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
 
         const bool sufficientMolecularRetention = (minMolecularWeight <= 4.0f);
         const bool sufficientOverallMass = (totalMass > RockyTransition);
         type = (sufficientMolecularRetention && sufficientOverallMass) ? PlanetType::Gaseous : PlanetType::Rocky;
-        if (type == PlanetType::Rocky)
+#ifdef ALLOW_DEBUG_PRINTF
+        if (generator.getVerbose())
         {
-            sprintf_s(text, "Gaseous planet demoted to rocky: %s molecular retention and %s mass\n",
-                      sufficientMolecularRetention ? "sufficient" : "inadequate",
-                      sufficientOverallMass ? "sufficient" : "inadequate");
-
-            state->emitCallback(text);
+            printf(" ... Planet looks like a gas giant? %s molecular retention, %s overall mass.\n",
+                   sufficientMolecularRetention ? "adequate" : "insufficient",
+                   sufficientOverallMass ? "adequate" : "insufficient");
         }
+#endif
     }
     else
     {
@@ -710,30 +517,34 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
 
     if (type == PlanetType::Rocky)
     {
-        assert(!(gasMass / mass() > GaseousPlanetThreshold) || (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())));
+        assert(!(gasMass / totalMass > GaseousPlanetThreshold) || (dustMass > CriticalLimit(semimajorAxis, eccentricity, star.getLuminosity())));
 
-        //const double earthMass = mass() * SolarMassToEarthMass;
-        radius = static_cast<float>(KothariRadius(totalMass, solarSMA, isGaseous(), star));
-        escapeVel = static_cast<float>(EscapeVelocity(totalMass, radius));
-        surfaceAccel = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
+        const double earthMass = totalMass * SolarMassToEarthMass;
+        radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, false, evaluationState.materialZone));
+        escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
+        surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-        minMolecularWeight = static_cast<float>(MinimumMolecularWeight(this, star));
+        minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
 
         // If this is a failed gaseous planet (too low of a gas mass ratio, or too low of a gas retention), account for H2 and He loss.
         if ((gasMass / totalMass) > IcePlanetThreshold && totalMass > RockyTransition)
         {
-            sprintf_s(text, "Re-evaluating rocky planet -> gas dwarf.  dustMass %s, gasRatio = %.3lf\n",
-                      (dustMass > CriticalLimit(solarSMA, solarEccentricity, star->luminosity())) ? "critical" : "sub-critical",
-                      gasMass / totalMass);
-            state->emitCallback(text);
+#ifdef ALLOW_DEBUG_PRINTF
+            if (generator.getVerbose())
+            {
+                printf(" ... Re-evaluating rocky planet as a gas dwarf.  dustMass %s, gasRatio = %.3lf\n",
+                       (dustMass > CriticalLimit(semimajorAxis, eccentricity, star.getLuminosity())) ? "critical" : "sub-critical",
+                       gasMass / totalMass);
+            }
+#endif
 
             const double h2Mass = gasMass * 0.85;
-            const double h2Life = GasLife(Weight_MolecularHydrogen, this);
+            const double h2Life = getGasLife(Weight_MolecularHydrogen);
             bool lostMass = false;
 
-            if (h2Life < star->age())
+            if (h2Life < star.getAge())
             {
-                const double h2Loss = ((1.0 - (1.0 / exp(star->age() / h2Life))) * h2Mass);
+                const double h2Loss = ((1.0 - (1.0 / exp(star.getAge() / h2Life))) * h2Mass);
 
                 gasMass -= h2Loss;
                 totalMass -= h2Loss;
@@ -742,10 +553,10 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
             }
 
             const double heMass = (gasMass - h2Mass) * 0.999;
-            const double heLife = GasLife(Weight_Helium, this);
-            if (heLife < star->age())
+            const double heLife = getGasLife(Weight_Helium);
+            if (heLife < star.getAge())
             {
-                const double heLoss = ((1.0 - (1.0 / exp(star->age() / heLife))) * heMass);
+                const double heLoss = ((1.0 - (1.0 / exp(star.getAge() / heLife))) * heMass);
 
                 gasMass -= heLoss;
                 totalMass -= heLoss;
@@ -755,55 +566,85 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
 
             if (lostMass)
             {
-                radius = static_cast<float>(KothariRadius(totalMass, solarSMA, false, star));
-                escapeVel = static_cast<float>(EscapeVelocity(totalMass, radius));
-                surfaceAccel = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
+                radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, false, evaluationState.materialZone));
+                escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
+                surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-                minMolecularWeight = static_cast<float>(MinimumMolecularWeight(this, star));
+                minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+                orbitalDominance = OrbitalDominance(totalMass, semimajorAxis);
             }
 
             // Last bit of checking - this may be a gaseous planet after all
-            const double initialGreenhouseTemp = effectiveTemperature(GreenhouseTriggerAlbedo);
+            const double initialGreenhouseTemp = EffectiveTemperature(evaluationState.ecosphereRatio, GreenhouseTriggerAlbedo);
             runawayGreenhouse = (initialGreenhouseTemp > FreezingPointWater);
 
-            calculateSurfacePressure(state);
-            if (surfacePress > 6000.0f && // Surface pressure is at least 6ATM (approximately).
+            calculateSurfacePressure(generator, evaluationState);
+            if (surfacePressure > 6000.0f && // Surface pressure is at least 6ATM (approximately).
                 minMolecularWeight <= 2.0f) // Retains hydrogen
             {
+#ifdef ALLOW_DEBUG_PRINTF
+                if (generator.getVerbose())
+                {
+                    printf(" ... Re-re-evaluating planet as a gas dwarf.\n");
+                }
+#endif
                 type = PlanetType::Gaseous;
+
+                radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, true, evaluationState.materialZone));
+                escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
+                surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
+
+                minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+
                 // TODO: Clear out the rocky planet specific values
                 runawayGreenhouse = false;
             }
         }
     }
 
-    plDensity = static_cast<float>(VolumeDensity(totalMass, radius));
+    density = static_cast<float>(VolumeDensity(totalMass, radius));
 
-    calculateDayLength();
+    calculateDayLength(evaluationState);
 
     if (type == PlanetType::Gaseous)
     {
         // Categorize the type of gaseous planet.  Cutoffs from
         // Chen, et al. 2017:
         const double jovianMass = totalMass * SolarMassToJovianMass;
+        const double earthMass = totalMass * SolarMassToEarthMass;
         if (jovianMass > BrownDwarfTransition)
         {
             type = PlanetType::BrownDwarf;
+#ifdef ALLOW_DEBUG_PRINTF
+            if (generator.getVerbose())
+            {
+                printf(" ... Planet is a brown dwarf (MJ = %.4lf, threshold is %.1lf).\n",
+                       jovianMass, BrownDwarfTransition);
+            }
+#endif
         }
         else
         {
             // Neptunian/Jovian transition falls at M(Juptier) 0.414 (+0.057/-0.065).
             type = (jovianMass > IceGiantTransition) ? PlanetType::GasGiant : PlanetType::IceGiant;
 
-            // Rocky / Gaseous = 2.04 (+0.66/-0.59)x M(Earth)
-            if (totalMass < RockyTransition)
+#ifdef ALLOW_DEBUG_PRINTF
+            if (generator.getVerbose())
             {
-                sprintf_s(text, "! Ice Giant found with M(Earth) = %.2lf (floor should be 1.45 - 2.70)\n", totalMass * SolarMassToEarthMass);
-                state->emitCallback(text);
+                printf(" ... Planet is a %s (MJ = %lf; ME = %lf).\n",
+                       (jovianMass > IceGiantTransition) ? "Gas giant" : "Ice Giant",
+                       jovianMass, earthMass);
             }
+#endif
+            // Rocky / Gaseous = 2.04 (+0.66/-0.59)x M(Earth)
+            //if (totalMass < RockyTransition)
+            //{
+            //    sprintf_s(text, "! Ice Giant found with M(Earth) = %.2lf (floor should be 1.45 - 2.70)\n", totalMass * SolarMassToEarthMass);
+            //    state->emitCallback(text);
+            //}
         }
 
-        albedo = state->randomNear(Albedo_GasGiant, ThreeSigma_Albedo_GasGiant);
+        albedo = generator.randomNear(Albedo_GasGiant, ThreeSigma_Albedo_GasGiant);
 
         // surface pressure
         // temperatures
@@ -812,8 +653,6 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
     else
     {
         assert(type == PlanetType::Rocky);
-
-        const double distanceFactor = sqrt(star->ecosphere() / solarSMA);
 
         // From the stargen documentation Burrows 2006 for greenhouse evaluation:
         // Old grnhouse:
@@ -829,42 +668,99 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         //	of the atmosphere, rain down and form an ocean. The albedo used here
         //	was chosen so that the boundary is about the same as the old method	
         //	Neither zone, nor r_greenhouse are used in this version   JLB
-        const double initialGreenhouseTemp = effectiveTemperature(GreenhouseTriggerAlbedo);
+        const double initialGreenhouseTemp = EffectiveTemperature(evaluationState.ecosphereRatio, GreenhouseTriggerAlbedo);
         runawayGreenhouse = (initialGreenhouseTemp > FreezingPointWater);
 
-        calculateSurfacePressure(state);
+        calculateSurfacePressure(generator, evaluationState);
 
         // Iterate surface conditions until they converge (hopefully).
         // Sets multiple components of the atmosphere / surface / temperature.
-        iterateSurfaceConditions(state);
+        iterateSurfaceConditions(generator, evaluationState);
 
-        if (config->computeGases &&
-            maxTemp >= FreezingPointWater &&
-            minTemp <= boilingPoint)
+        // The original criteria were minTemp < boiling, maxTemp > freezing.
+        // That can lead to planets with atmospheres that aren't evaluated.
+        // But evaluation seems a bit wonky?
+        // What about a first-stab ESI rating?  If it may be similar, let's
+        // break out the gases.
+        if (calculateEarthSimilarity() > 0.50f &&
+            minTemperature <= boilingPoint)
         {
-            calculateGases();
+#ifdef ALLOW_DEBUG_PRINTF
+            if (generator.getVerbose())
+            {
+                printf(" ... Evaluating atmosphere\n");
+            }
+#endif
+            calculateGases(evaluationState);
         }
 
         // Select the type of planet
-        if (surfacePress < 1.0f)
+        if (surfacePressure < 1.0f)
         {
             // Effectively no atmosphere (sub-1mb) - is it small enough to be an asteroid belt?
-            type = (totalMass * SolarMassToEarthMass < AsteroidMassLimit && planet == nullptr) ? PlanetType::AsteroidBelt : PlanetType::Rocky;
+            if (totalMass * SolarMassToEarthMass < AsteroidMassLimit)
+            {
+                type = PlanetType::AsteroidBelt;
+            }
+            else if (orbitalDominance <= 1.0f)
+            {
+                type = PlanetType::DwarfPlanet;
+            }
+            else
+            {
+                type = PlanetType::Rocky;
+            }
+#ifdef ALLOW_DEBUG_PRINTF
+            if (generator.getVerbose())
+            {
+                const std::string& tStr = PlanetTypeString(type);
+                printf(" ... Planet w/o atmo - classified as %s\n", tStr.c_str());
+            }
+#endif
         }
         else
         {
-            calculateEarthSimilarity();
+            earthSimilarityIndex = calculateEarthSimilarity();
 
-            if (hydrosphere > 0.95f)
+            if (orbitalDominance <= 1.0f)
             {
+#ifdef ALLOW_DEBUG_PRINTF
+                if (generator.getVerbose())
+                {
+                    printf(" ... Dwarf planet - esi %.2f\n", earthSimilarityIndex);
+                }
+#endif
+                type = PlanetType::DwarfPlanet;
+            }
+            else if (hydrosphere > 0.95f)
+            {
+#ifdef ALLOW_DEBUG_PRINTF
+                if (generator.getVerbose())
+                {
+                    printf(" ... Ocean planet - esi %.2f\n", earthSimilarityIndex);
+                }
+#endif
                 type = PlanetType::Ocean;
             }
-            else if (iceCoverage > 0.95f || meanSurfaceTemp < FreezingPointWater)
+            else if (iceCoverage > 0.95f || meanSurfaceTemperature < FreezingPointWater)
             {
+#ifdef ALLOW_DEBUG_PRINTF
+                if (generator.getVerbose())
+                {
+                    printf(" ... Ice planet - esi %.2f\n", earthSimilarityIndex);
+                }
+#endif
                 type = PlanetType::IcePlanet;
             }
             else if (hydrosphere > 0.05f)
             {
+#ifdef ALLOW_DEBUG_PRINTF
+                if (generator.getVerbose())
+                {
+                    printf(" ... Terrestrial planet - esi %.2f\n", earthSimilarityIndex);
+                }
+#endif
+
                 type = PlanetType::Terrestrial;
 
                 // What criteria for Goldilocks?
@@ -873,9 +769,17 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
                     // Do some additional workup to determine suitability for habitation.
                 }
             }
+#ifdef ALLOW_DEBUG_PRINTF
+            else if (generator.getVerbose())
+            {
+                printf(" ... Rocky planet - esi %.2f\n", earthSimilarityIndex);
+            }
+#endif
         }
     }
 
+    // Keeping this around for reference, although it will move over to Generator::generate()
+#if 0
     if (!moon.empty())
     {
         assert(planet == nullptr);
@@ -967,20 +871,25 @@ void Planet::evaluate(const Star* centralStar, const Planet* planet, int planetN
         moon.clear();
         moon.assign(mp.begin(), mp.end());
     }
+#endif
+
+    evaluated = true;
 }
 
 //----------------------------------------------------------------------------
+#if 0
 void Planet::exchange(Planet& p)
 {
     // Swap the existing planet with the new planet.  At this stage of evaluation, that entails swapping only a few values:
-    std::swap(semiMajorAxis, p.semiMajorAxis);
+    std::swap(semimajorAxis, p.semimajorAxis);
     std::swap(eccentricity, p.eccentricity);
     std::swap(dustMass, p.dustMass);
     std::swap(gasMass, p.gasMass);
     std::swap(totalMass, p.totalMass);
 
-    moon.emplace_front(p);
+    moon.insert(moon.begin(), p);
 }
+#endif
 
 //----------------------------------------------------------------------------
 const std::string& Planet::GasString(Gas gas)
@@ -1006,43 +915,144 @@ const std::string& Planet::GasString(Gas gas)
 }
 
 //----------------------------------------------------------------------------
+double Planet::getGasLife(double molecularMass) const
+{
+    const double v = RMSVelocity(molecularMass, exosphereTemperature) * CmPerM;
+
+    const double g = surfaceAcceleration * CmPerM;
+
+    const double r = radius * CmPerKm;
+
+    const double t = (pow(v, 3.0) / (2.0 * pow(g, 2.0) * r)) * exp((3.0 * g * r) / pow(v, 2.0));
+
+    return t * YearsPerSecond;
+}
+
+//----------------------------------------------------------------------------
+double Planet::getTotalMoonMass() const
+{
+    double ttlMass = 0.0;
+
+#if 0
+    for (const auto& m : moon)
+    {
+        ttlMass += m.getMass();
+    }
+#endif
+
+    return ttlMass;
+}
+
+//----------------------------------------------------------------------------
 float Planet::greenhouseRise(float effectiveTemperature) const
 {
-    const float opticalDepth = Opacity(minMolecularWeight, surfacePress);
-    const float convectionFactor = EarthConvectionFactor * powf(surfacePress * static_cast<float>(AtmPerMb), 0.4f);
+    const float opticalDepth = Opacity(minMolecularWeight, surfacePressure);
+    const float convectionFactor = EarthConvectionFactor * powf(surfacePressure * static_cast<float>(AtmPerMb), 0.4f);
 
     return std::max(0.0f,
                     (powf(1.0f + 0.75f * opticalDepth, 0.25f) - 1.0f) * effectiveTemperature * convectionFactor);
 }
 
 //----------------------------------------------------------------------------
-void Planet::iterateSurfaceConditions(GenerationState* state)
+void Planet::initializeSurfaceConditions(const EvaluationState& evaluationState)
+{
+    albedo = Albedo_Earth;
+
+    const float effectiveTemp = EffectiveTemperature(evaluationState.ecosphereRatio, albedo);
+    const float greenhouseTemp = greenhouseRise(effectiveTemp);
+    meanSurfaceTemperature = effectiveTemp + greenhouseTemp;
+
+    setTemperatureRange();
+
+    hydrosphere = cloudCoverage = iceCoverage = 0.0f;
+}
+
+//----------------------------------------------------------------------------
+void Planet::iterateSurfaceConditions(Generator& generator, const EvaluationState& evaluationState)
 {
     // Set initial conditions:
-    calculateSurfaceConditions(true, state);
+    initializeSurfaceConditions(evaluationState);
+    updateSurfaceConditions(generator, evaluationState);
 
     bool converged = false;
     float previousTemperature;
     static constexpr int MaxConvergenceIterations = 25;
     for (int i = 0; i < MaxConvergenceIterations; ++i)
     {
-        previousTemperature = meanSurfaceTemp;
-        calculateSurfaceConditions(false, state);
+        previousTemperature = meanSurfaceTemperature;
+        updateSurfaceConditions(generator, evaluationState);
 
         // Do I want to use only absolute temperature?
-        if (fabsf(previousTemperature - meanSurfaceTemp) < 0.25f)
+        if (fabsf(previousTemperature - meanSurfaceTemperature) < 0.25f)
         {
             // Converged closely enough
             converged = true;
             break;
         }
     }
-    if (!converged)
+
+#ifdef ALLOW_DEBUG_PRINTF
+    if (generator.getVerbose())
     {
-        char text[256];
-        sprintf_s(text, "!!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemp));
-        state->emitCallback(text);
+        printf(" ... !!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemperature));
     }
+#endif
+}
+
+//----------------------------------------------------------------------------
+float Planet::minimumMolecularWeight(double stellarAge) const
+{
+    // We will search through various molecular masses to find the one that is
+    // closest to the age of the planetary system.  We initialize the search to
+    // the molecular limit of the planet, and check its gas life.
+
+    double molecularMass = MolecularLimit(escapeVelocity, exosphereTemperature);
+    double previousMass = molecularMass;
+
+    double gasLife = getGasLife(molecularMass);
+
+    if (gasLife > stellarAge)
+    {
+        // Gas retention is high for the starting mass.  Reduce the weight to find the right range.
+        while (gasLife > stellarAge)
+        {
+            previousMass = molecularMass;
+            molecularMass *= 0.5;
+
+            gasLife = getGasLife(molecularMass);
+        }
+    }
+    else
+    {
+        // Gas retention is low.  Increase the weight to find something that's retained.
+        while (gasLife < stellarAge)
+        {
+            previousMass = molecularMass;
+            molecularMass *= 2.0;
+
+            gasLife = getGasLife(molecularMass);
+        }
+        // molecularMass is the lower of the two values in the binary search below.
+        std::swap(previousMass, molecularMass);
+    }
+
+    // Binary search between the two end points
+    while (previousMass - molecularMass > 0.1)
+    {
+        const double midMass = (previousMass + molecularMass) * 0.5;
+        gasLife = getGasLife(molecularMass);
+
+        if (gasLife < stellarAge)
+        {
+            molecularMass = midMass;
+        }
+        else
+        {
+            previousMass = midMass;
+        }
+    }
+
+    return static_cast<float>(previousMass + molecularMass) * 0.5f;
 }
 
 //----------------------------------------------------------------------------
@@ -1051,15 +1061,16 @@ const std::string& Planet::PlanetTypeString(PlanetType type)
     static const std::string planetType[] =
     {
         "Unknown",
-        "Rocky",
-        "AsteroidBelt",
-        "IcePlanet",
-        "Terrestrial",
-        "Ocean",
+        "Rocky Planet",
+        "Asteroid Belt",
+        "Dwarf Planet",
+        "Ice Planet",
+        "Terrestrial Planet",
+        "Ocean Planet",
         "Gaseous",
-        "IceGiant",
-        "GasGiant",
-        "BrownDwarf"
+        "Ice Giant",
+        "Gas Giant",
+        "Brown Dwarf"
     };
 
     return planetType[uint32_t(type)];
@@ -1068,40 +1079,142 @@ const std::string& Planet::PlanetTypeString(PlanetType type)
 //----------------------------------------------------------------------------
 void Planet::setTemperatureRange()
 {
-    const float maxT = meanSurfaceTemp + sqrtf(meanSurfaceTemp) * 10.0f;
-    const float minT = meanSurfaceTemp / sqrtf(day + float(HoursPerDay));
+    const float maxT = meanSurfaceTemperature + sqrtf(meanSurfaceTemperature) * 10.0f;
+    const float minT = meanSurfaceTemperature / sqrtf(dayLength + float(HoursPerDay));
 
-    const float pressmod = 1.0f / sqrtf(1.0f + 20.0f * surfacePress * BarPerMillibar);
-    const float ppmod = 1.0f / sqrtf(10.0f + 5.0f * surfacePress * BarPerMillibar);
-    const float tiltmod = fabsf(cosf(axialTilt * static_cast<float>(PI / 180.0)) * powf(1.0f + solarEccentricity, 2.0f));
-    const float daymod = 1.0f / (200.0f / day + 1.0f);
+    const float pressmod = 1.0f / sqrtf(1.0f + 20.0f * surfacePressure * BarPerMillibar);
+    const float ppmod = 1.0f / sqrtf(10.0f + 5.0f * surfacePressure * BarPerMillibar);
+    const float tiltmod = fabsf(cosf(axialTilt) * powf(1.0f + eccentricity, 2.0f));
+    const float daymod = 1.0f / (200.0f / dayLength + 1.0f);
     const float mh = powf(1.0f + daymod, pressmod);
     const float  ml = powf(1.0f - daymod, pressmod);
 
-    const float hi = mh * meanSurfaceTemp;
-    const float lo = std::max(minT, ml * meanSurfaceTemp);
+    const float hi = mh * meanSurfaceTemperature;
+    const float lo = std::max(minT, ml * meanSurfaceTemperature);
     const float sh = hi + pow((100.0f + hi) * tiltmod, sqrt(ppmod));
     const float wl = std::max(0.0f, lo - powf((150.0f + lo) * tiltmod, sqrt(ppmod)));
 
-    highTemp = soft(hi, maxT, minT);
-    lowTemp = soft(lo, maxT, minT);
-    maxTemp = soft(sh, maxT, minT);
-    minTemp = soft(wl, maxT, minT);
+    highTemperature = soft(hi, maxT, minT);
+    lowTemperature = soft(lo, maxT, minT);
+    maxTemperature = soft(sh, maxT, minT);
+    minTemperature = soft(wl, maxT, minT);
 }
 
 //----------------------------------------------------------------------------
-double Planet::totalMoonMass() const
+void Planet::updateSurfaceConditions(Generator& generator, const EvaluationState& evaluationState)
 {
-    auto sumMass = [](double ttl, const Planet& m) { return ttl + m.totalMass; };
+    if (runawayGreenhouse && maxTemperature < boilingPoint)
+    {
+        // Planet is too cool for runaway greenhouse, so re-evaluate some things
+        runawayGreenhouse = false;
 
-    double ttlMass = std::accumulate(moon.begin(), moon.end(), 0.0, sumMass);
-    return ttlMass;
+        calculateSurfacePressure(generator, evaluationState);
+    }
+
+    // Burke 1985 notes:
+    // This function is Fogg's eq.22.	 Given the volatile gas inventory and
+    // planetary radius of a planet (in Km), this function returns the
+    // fraction of the planet covered with water.
+    float newHydrosphere = std::min(1.0f,
+                                    static_cast<float>((EarthHydrosphere * volatileGasInventory / 1000.0) * pow(EarthRadiusKm / radius, 2.0)));
+
+    // Burke 1985 notes:
+    // Given the surface temperature of a planet (in Kelvin), this function
+    // returns the fraction of cloud cover available.  This is Fogg's eq.23.
+    // See Hart in "Icarus" (vol 33, pp23 - 39, 1978) for an explanation.
+    // This equation is Hart's eq.3.
+    // I have modified it slightly using constants and relationships from
+    // Glass's book "Introduction to Planetary Geology", p.46.
+    // The 'CLOUD_COVERAGE_FACTOR' is the amount of surface area on Earth
+    // covered by one Kg. of cloud.
+    float newCloudCover;
+    if (minMolecularWeight > Weight_WaterVapor)
+    {
+        newCloudCover = 0.0f;
+    }
+    else
+    {
+        // TODO: Look up the papers listed in Burke 1985 to see if I can reconcile this
+        // equation.
+        const double surfaceArea = 4.0 * PI * (radius * radius);
+
+        // Mass of water, in grams
+        const double hydroMass = newHydrosphere * surfaceArea * EarthWaterMassPerKm2;
+
+        // Mass of water vapor - original variable is listed as kg, but I don't see why it is, since we divided
+        // mass in grams by 100,000,000
+        const double waterVapor = (0.00000001 * hydroMass) * exp(Q2_36 * (meanSurfaceTemperature - EarthAverageTemperature));
+
+        newCloudCover = std::min(1.0f, static_cast<float>(CloudCoverageFactor * waterVapor / surfaceArea));
+    }
+
+    // Burke 1985 notes:
+    // Given the surface temperature of a planet (in Kelvin), this function
+    // returns the fraction of the planet's surface covered by ice.  This is
+    // Fogg's eq.24.  See Hart[24] in Icarus vol.33, p.28 for an explanation.
+    // I have changed a constant from 70 to 90 in order to bring it more in
+    // line with the fraction of the Earth's surface covered with ice, which
+    // is approximatly .016 (=1.6%).
+    float newIceCover = std::min(1.5f * newHydrosphere, powf(((328.0f - meanSurfaceTemperature) / 90.0f), 5.0f));
+
+    // Reconcile new results with state of the planet and apply sanity clamps
+    newIceCover = std::max(0.0f, std::min(1.0f, newIceCover));
+
+    if (newHydrosphere + newIceCover > 1.0f)
+    {
+        newHydrosphere = 1.0f - newIceCover;
+    }
+
+    if (runawayGreenhouse && surfacePressure > 0.0f)
+    {
+        cloudCoverage = 1.0f;
+    }
+
+    if (highTemperature >= boilingPoint
+        // Not sure why the integer conversions here, other than to avoid floating point vagaries
+        && !((int)dayLength == (int)(orbitalPeriod * HoursPerDay) || resonant))
+    {
+        // Boil-off
+        hydrosphere = 0.0f;
+        newHydrosphere = 0.0f;
+        cloudCoverage = (minMolecularWeight > Weight_WaterVapor) ? 0.0f : 1.0f;
+    }
+
+    if (meanSurfaceTemperature < FreezingPointWater - 3.0)
+    {
+        // Frozen
+        hydrosphere = 0.0f;
+        newHydrosphere = 0.0f;
+    }
+
+    hydrosphere = (2.0f * hydrosphere + newHydrosphere) / 3.0f;
+    cloudCoverage = (2.0f * cloudCoverage + newCloudCover) / 3.0f;
+    iceCoverage = (2.0f * iceCoverage + newIceCover) / 3.0f;
+
+    if (hydrosphere + iceCoverage > 1.0f)
+    {
+        hydrosphere = 1.0f - iceCoverage;
+    }
+
+    const float newAlbedo = calculateAlbedo(generator);
+
+    albedo = (2.0f * albedo + newAlbedo) / 3.0f;
+
+    // TODO: Consolidate into a single method?  effectiveTemperature is used only
+    // in conjunction with greenhouseRise
+    const float effectiveTemp = EffectiveTemperature(evaluationState.ecosphereRatio, albedo);
+    const float greenhouseTemp = greenhouseRise(effectiveTemp);
+    const float newSurfaceTemp = effectiveTemp + greenhouseTemp;
+
+    meanSurfaceTemperature = (2.0f * meanSurfaceTemperature + newSurfaceTemp) / 3.0f;
+
+    setTemperatureRange();
 }
 
 //----------------------------------------------------------------------------
-double Planet::volatileInventory(GenerationState* state) const
+double Planet::volatileInventory(Generator& generator, const EvaluationState& evaluationState) const
 {
-    const double velocityRatio = escapeVel / rmsVelocity;
+    const double velocityRatio = escapeVelocity / rmsVelocity;
     if (velocityRatio >= GasRetentionThreshold)
     {
         // Burrows 2006 adjusted Zone 1 from 100000 to 140000
@@ -1110,28 +1223,27 @@ double Planet::volatileInventory(GenerationState* state) const
         constexpr double StandardDivisor = 100.0;
 
         constexpr double proportionConstantByZone[] = { Zone1Constant, 75000.0, 250.0 };
-        const double zone = star->materialZone(solarSMA);
 
         double proportionConstant;
-        if (zone < 2.0)
+        if (evaluationState.materialZone < 2.0f)
         {
-            proportionConstant = Lerp(zone - 1.0, proportionConstantByZone[0], proportionConstantByZone[1]);
+            proportionConstant = Lerp(evaluationState.materialZone - 1.0, proportionConstantByZone[0], proportionConstantByZone[1]);
         }
         else
         {
-            proportionConstant = Lerp(zone - 2.0, proportionConstantByZone[1], proportionConstantByZone[2]);
+            proportionConstant = Lerp(evaluationState.materialZone - 2.0, proportionConstantByZone[1], proportionConstantByZone[2]);
         }
 
         const double massInEarths = totalMass * SolarMassToEarthMass;
-        const double center = proportionConstant * massInEarths / star->mass();
+        const double center = proportionConstant * massInEarths / evaluationState.stellarMass;
 
         if (runawayGreenhouse || (gasMass / totalMass) > IcePlanetThreshold)
         {
-            return state->randomAbout(center, 0.2);
+            return generator.randomAbout(center, 0.2);
         }
         else
         {
-            return state->randomAbout(center / StandardDivisor, 0.2);
+            return generator.randomAbout(center / StandardDivisor, 0.2);
         }
     }
     else

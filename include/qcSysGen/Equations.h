@@ -26,7 +26,7 @@
 
 #include "Consts.h"
 
-#include <math.h>
+#include <algorithm>
 
 namespace qc
 {
@@ -34,8 +34,18 @@ namespace qc
 namespace SystemGenerator
 {
 
-class Planet;
-class Star;
+//----------------------------------------------------------------------------
+
+/// @brief Clamp a value between upper and lower bounds.
+/// @tparam T_ Value type
+/// @param value The value to clamp
+/// @param lower The lower bound of the range.
+/// @param upper The upper bound of the range.
+/// @return The clamped value.
+template <class T_> inline T_ Clamp(T_ value, T_ lower, T_ upper)
+{
+    return std::min(upper, std::max(value, lower));
+}
 
 //----------------------------------------------------------------------------
 
@@ -62,15 +72,6 @@ inline double EscapeVelocity(double mass, double radius)
 
 //----------------------------------------------------------------------------
 
-/// @brief Returns the number of years for 1/e of the given gas to escape the
-/// planet.
-/// @param molecularMass Molecular mass of the gas in question.
-/// @param planet The planet of interest.
-/// @return Years required for 1/e of the gas to escape.
-double GasLife(double molecularMass, const Planet* planet);
-
-//----------------------------------------------------------------------------
-
 /// @brief Return the interpolant required to return `value` when lerping between
 /// `lower` and `upper`.
 /// @tparam T_ Value type
@@ -84,28 +85,6 @@ template <class T_> inline T_ InverseLerp(T_ value, T_ lower, T_ upper)
 }
 
 //----------------------------------------------------------------------------
-
-/// @brief Perform a linear interpolation between `lower` and `upper`.
-/// @tparam T_ Value type
-/// @param interpolant An interpolant in the range [0.0, 1.0].  Values are clamped to that range.
-/// @param lower The lower range of values.
-/// @param upper The upper range of values.
-/// @return Value in the range [lower, upper].
-template <class T_> inline T_ Lerp(T_ interpolant, T_ lower, T_ upper)
-{
-    return (interpolant <= lower) ? lower : ((interpolant >= upper) ? upper : (lower + (upper - lower) * interpolant));
-}
-
-//----------------------------------------------------------------------------
-
-/// @brief Parameter A1 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-static constexpr double K_A1 = 6.485e12;
-
-/// @brief Parameter A2 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-static constexpr double K_A2 = 4.0032e-8;
-
-/// @brief Parameter B in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-static constexpr double K_B = 5.71e12;
 
 /// @brief Compute the radius of a planet, given the planet's sma and mass, the Star,
 /// and whether the planet should be treated as a gas giant.
@@ -159,9 +138,22 @@ static constexpr double K_B = 5.71e12;
 /// @param mass Mass of the body, in solar masses.
 /// @param sma The semi-major axis of the planet's orbit.  For a moon, the SMA of the parent planet.
 /// @param forGasGiant If true, the planet is treated as a gas giant.  If false, it's treated as a rocky planet.
-/// @param star The central star.
+/// @param materialZone The material zone of the star that this planet orbits (I, II, or III, with fractions indicating being in the overlap regions).
 /// @return The computed radius, in km.
-double KothariRadius(double mass, double sma, bool forGasGiant, const Star* star);
+double KothariRadius(double mass, double sma, bool forGasGiant, float materialZone);
+
+//----------------------------------------------------------------------------
+
+/// @brief Perform a linear interpolation between `lower` and `upper`.
+/// @tparam T_ Value type
+/// @param interpolant An interpolant in the range [0.0, 1.0].  Values are clamped to that range.
+/// @param lower The lower range of values.
+/// @param upper The upper range of values.
+/// @return Value in the range [lower, upper].
+template <class T_> inline T_ Lerp(T_ interpolant, T_ lower, T_ upper)
+{
+    return (interpolant <= lower) ? lower : ((interpolant >= upper) ? upper : (lower + (upper - lower) * interpolant));
+}
 
 //----------------------------------------------------------------------------
 
@@ -170,17 +162,6 @@ double KothariRadius(double mass, double sma, bool forGasGiant, const Star* star
 /// @param stellarMass Mass of the star, with Sol = 1.0.
 /// @return Luminosity of the star, with Sol = 1.0.
 double Luminosity(double stellarMass);
-
-//----------------------------------------------------------------------------
-
-/// @brief Returns the minimum molecular weight retained by a world.
-/// 
-/// This function accounts for gaseous escape over time using an iterative process
-/// to converge on a result.
-/// @param planet The planet we're processing.
-/// @param star The star we're orbiting.
-/// @return The lightest retained molecular weight.
-double MinimumMolecularWeight(const Planet* planet, const Star* star);
 
 //----------------------------------------------------------------------------
 
@@ -194,6 +175,29 @@ double MinimumMolecularWeight(const Planet* planet, const Star* star);
 inline double MolecularLimit(double escapeVelocity, double exosphereTemperature)
 {
     return 3.0 * MolarGasConstant * exosphereTemperature / pow(escapeVelocity * EscapeToRmsVelocity, 2.0);
+}
+
+//----------------------------------------------------------------------------
+
+/// @brief Returns a scalar representing the orbital dominance of a body orbiting
+/// a star.
+/// 
+/// Based on the value PI from Jean-Luc Margot.  A value > 1.0 indicates that
+/// the body is massive enough to clear its orbital neighborhood such that the
+/// only other bodies in that neighborhood are the body's satellites or other
+/// masses that are influenced by the body's gravitational pull.
+/// 
+/// For instance, Earth has a value of about 810.  Jupiter has about 4000.
+/// The asteroid Ceres has about 0.04.
+/// @param mass Mass of the body, in Solar masses.
+/// @param sma The semi-major axis of the orbit, in AU.
+/// @return A numerical value indicating the magnitude of the body's dominance.
+inline float OrbitalDominance(double mass, double sma)
+{
+    // K from the equation to compute PI.
+    static constexpr double K = 807.0;
+
+    return static_cast<float>(K * mass * SolarMassToEarthMass * pow(sma, -9.0 / 8.0));
 }
 
 //----------------------------------------------------------------------------
