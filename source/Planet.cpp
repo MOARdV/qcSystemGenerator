@@ -992,7 +992,7 @@ void Planet::iterateSurfaceConditions(Generator& generator, const EvaluationStat
     }
 
 #ifdef ALLOW_DEBUG_PRINTF
-    if (generator.getVerbose())
+    if (!converged && generator.getVerbose())
     {
         printf(" ... !!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemperature));
     }
