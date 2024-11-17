@@ -152,7 +152,7 @@ double KothariRadius(double mass, double sma, bool forGasGiant, float materialZo
 /// @return Value in the range [lower, upper].
 template <class T_> inline T_ Lerp(T_ interpolant, T_ lower, T_ upper)
 {
-    return (interpolant <= lower) ? lower : ((interpolant >= upper) ? upper : (lower + (upper - lower) * interpolant));
+    return (interpolant <= (T_)(0)) ? lower : ((interpolant >= (T_)(1)) ? upper : (lower + (upper - lower) * interpolant));
 }
 
 //----------------------------------------------------------------------------
