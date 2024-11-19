@@ -93,11 +93,11 @@ template <class T_> inline T_ InverseLerp(T_ value, T_ lower, T_ upper)
 /// The accrete implementation, going back to Burdick 1988, did not use the Kothari equation
 /// for gas giants.  Fogg 1985 says that a different algorithm did a good enough
 /// job in matching rocky planet's radii.  However, Burdick 1988, et seq, use Kothari's
-/// equation for rocky planets and empirical_density for gas giants.  It is unclear why
-/// it was implemented like that.
+/// equation for rocky planets and empirical_density for gas giants.  It was not clear
+/// to me why it was implemented like that at first.
 ///
-/// The Kothari equation does a better job than empirical_density() for gas giants and
-/// rocky planets, so I have decided to use this function exclusively, with the
+/// The Kothari equation does a better job than empirical_density() for some gas giants and
+/// rocky planets, so I initially used this function exclusively, with the
 /// following changes (following the background information).
 /// 
 /// Fogg 1985 describes three zones of dust, Zones 1, 2, and 3.  The zones originated in
@@ -128,6 +128,12 @@ template <class T_> inline T_ InverseLerp(T_ value, T_ lower, T_ upper)
 /// Within the transition zones, I am applying a linear interpolation between the atomic weights and
 /// atomic numbers of the two zones, so there is not a discontinuity in those values when transitioning
 /// between zones.  This is purely a speculative change, and I don't have proofs that it is valid.
+/// 
+/// @note Upon further review of the results, Kothari Radius breaks down under a couple of circumstances:
+/// First, in Zone 1, the gas giants are too dense (I've seen density in excess of 10g/cc).  I changed
+/// the Z1 densities for gas giants to match Z2, even though H2 and He maybe aren't supposed to be available.
+/// Seecond, super-Jovian giants appear to exceed the threshold Kothari identified where the GG starts
+/// collapsing due to mass, leading to high-density gas giants (too small to be brown dwarves).
 /// 
 /// @todo Can the forGasGiant parameter be eliminated?  I already know everything I need, and I can infer
 /// if the world is above the critical limit.
