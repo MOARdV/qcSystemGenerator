@@ -46,16 +46,16 @@ double KothariRadius(double mass, double sma, bool forGasGiant, float materialZo
 {
     // nb: atomicWeight is A in Kothari's equation.  atomicNumber is Z.
 
-    // Parameter A1 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-    static constexpr double A1 = 6.485e12;
+    // Parameter alpha1 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double alpha1 = 6.485e12;
 
-    // Parameter A2 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-    static constexpr double A2 = 4.0032e-8;
+    // Parameter alpha2 in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double alpha2 = 4.0032e-8;
 
-    // Parameter B in Fogg 1985 equation 9 / Kothari 1936 equation 23.
-    static constexpr double B = 5.71e12;
+    // Parameter beta in Fogg 1985 equation 9 / Kothari 1936 equation 23.
+    static constexpr double beta = 5.71e12;
 
-    int zoneIndex = (materialZone < 2.0f) ? 0 : 1;
+    int zoneIndex = (int)(materialZone) - 1;
     double interpolant = (materialZone - floorf(materialZone));
 
     if (forGasGiant)
@@ -64,23 +64,27 @@ double KothariRadius(double mass, double sma, bool forGasGiant, float materialZo
     }
 
     // [rocky Zone 1, rocky Zone 2, rocky Zone 3, gas Zone 1, gas Zone 2, gas Zone 3]
-    constexpr double AtomicWeight[6] = { 15.0, 10.0, 10.0, 9.5, 2.47, 7.0 };
-    constexpr double AtomicNumber[6] = { 8.0, 5.0, 5.0, 4.5, 2.0, 4.0 };
+    // The original gas Zone 1 is questionable.  It leads to very high density inner zone
+    // gas giants.  For now, I'll lower those weights to match Zone 2.
+    static constexpr double AtomicWeight[6] = { 15.0, 10.0, 10.0, /*9.5*/ 2.47, 2.47, 7.0 };
+    static constexpr double AtomicNumber[6] = { 8.0, 5.0, 5.0, /*4.5*/ 2.0, 2.0, 4.0 };
 
-    const double atomicWeight = Lerp(interpolant, AtomicWeight[zoneIndex], AtomicWeight[zoneIndex + 1]);
-    const double atomicNumber = Lerp(interpolant, AtomicNumber[zoneIndex], AtomicNumber[zoneIndex + 1]);
+    const double A = Lerp(interpolant, AtomicWeight[zoneIndex], AtomicWeight[zoneIndex + 1]);
+    const double Z = Lerp(interpolant, AtomicNumber[zoneIndex], AtomicNumber[zoneIndex + 1]);
 
-    const double ZA = atomicWeight * atomicNumber;
+    // Kothari 1936 eq 23, broken down
+    static constexpr double numeratorT1 = 2.0 * beta / alpha1;
+    const double numeratorT2 = 1.0 / pow(Z * A, (1.0 / 3.0));
+    const double numeratorT3 = pow(SolarMassInGrams, (1.0 / 3.0));
+    const double numerator = numeratorT1 * numeratorT2 * numeratorT3;
 
-    double radius = (2.0 * B * pow(SolarMassInGrams, (1.0 / 3.0))) / (A1 * pow(ZA, (1.0 / 3.0)));
+    static constexpr double denominatorT1 = alpha2 / alpha1;
+    const double denominatorT2 = pow(A, (4.0 / 3.0)) / (Z * Z);
+    const double denominatorT3 = pow(SolarMassInGrams, (2.0 / 3.0));
+    const double denominatorT4 = pow(mass, (2.0 / 3.0));
+    const double denominator = 1.0 + denominatorT1 * denominatorT2 * denominatorT3 * denominatorT4;
 
-    double denominator = A2 * pow(atomicWeight, (4.0 / 3.0)) * pow(SolarMassInGrams, (2.0 / 3.0));
-    denominator *= pow(mass, (2.0 / 3.0));
-    denominator /= (A1 * (atomicNumber * atomicNumber));
-    denominator += 1.0;
-
-    radius /= denominator;
-    radius = (radius * pow(mass, (1.0 / 3.0))) * KmPerCm;
+    const double radius = numerator / denominator * pow(mass, (1.0 / 3.0)) * KmPerCm;
 
     return radius;
 }
