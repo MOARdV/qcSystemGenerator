@@ -48,8 +48,8 @@ constexpr double EcosphereScalar = 1.0; //!< Radius of the ecosphere, in AU.
 
 constexpr double SnowLineScalar = 5.0; //!< The snow line scalar, where water ice can exist in a vacuum, in AU.
 
-static constexpr double InnerHabitableZoneScalar = 0.95; //!< Inner limit of the habitable zone, in AU.
-static constexpr double OuterHabitableZoneScalar = 1.37; //!< Outer limit of the habitable zone, in AU.
+static constexpr double InnerHabitableZoneScalar = 0.95; //!< Inner limit of the habitable zone, in AU.  Kasting 1993
+static constexpr double OuterHabitableZoneScalar = 1.37; //!< Outer limit of the habitable zone, in AU.  Kasting 1993
 
 // vvv These may belong in the Generator, instead, since that's the only place where we use them ... ?
 
