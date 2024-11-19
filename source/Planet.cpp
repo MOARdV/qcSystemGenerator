@@ -130,6 +130,26 @@ float EffectiveTemperature(double distanceRatio, float albedo)
 }
 
 //----------------------------------------------------------------------------
+/// @brief Returns an empirically-derived density, given the body's mass and
+/// semi-major axis.
+/// @todo Adjustments for material zone 3?  The density should be higher if
+/// we're keeping kind-of aligned to KothariRadius.
+/// @note Specifically for gas giants
+/// @param mass Planet's mass, in Solar masses.
+/// @param ecosphereRatio Ratio of the planet's SMA over the ecosphere radius.
+/// @return Approximated density for a gas giant.
+float GasGiantEmpiricalDensity(double mass, double ecosphereRatio)
+{
+    const float term1 = static_cast<float>(pow(mass * qc::SystemGenerator::SolarMassToEarthMass, (1.0 / 8.0)));
+    const float term2 = static_cast<float>(pow(1.0 / ecosphereRatio, 0.25));
+
+    const float densityAdjustment = static_cast<float>(0.4 * mass * qc::SystemGenerator::SolarMassToJovianMass);
+    const float scalar = std::max(1.2f, 0.8f + densityAdjustment);
+
+    return scalar * term1 * term2;
+}
+
+//----------------------------------------------------------------------------
 /// @brief Returns a unitless opacity value used for determining the greenhouse effect
 /// on the planet
 /// @return Opacity.
@@ -182,6 +202,45 @@ float Opacity(float minMolecularWeight, float surfacePressure)
     }
 
     return opticalDepth;
+}
+
+//----------------------------------------------------------------------------
+/// @brief Return the radius of a body based on its mass and density.
+/// @param mass Mass of the body, in solar masses.
+/// @param density Density, in g/cc
+/// @return Radius in km.
+double VolumeRadius(double mass, float density)
+{
+    const double volume = (mass * qc::SystemGenerator::SolarMassInGrams) / double(density);
+    return pow((3.0 * volume) / (4.0 * qc::SystemGenerator::PI), (1.0 / 3.0)) * qc::SystemGenerator::KmPerCm;
+}
+
+//----------------------------------------------------------------------------
+/// @brief Synthesize a gas giant radius using a blend of Kothari Radius and EmpiricalDensity.
+/// 
+/// This function computes radius using both the Kothari Radius algorithm and the
+/// EmpiricalDensity / VolumeRadius approach.  It then blends between the two to
+/// return a result that tops out near roughly 71,500km (in material zone 2) for
+/// all mass from 1x to 13x Jupiter.
+/// @param mass Mass of the body, in solar masses.
+/// @param sma Semimajor axis, in AU.
+/// @param materialZone Material zone of the gas giant.
+/// @param ecosphereRatio Ratio of the planet's SMA over the ecosphere radius.
+/// @return Radius in km.
+float SynthesizeGasGiantRadius(double mass, double sma, float materialZone, double ecosphereRatio)
+{
+    // Kothari radius
+    const float kothariRadius = static_cast<float>(qc::SystemGenerator::KothariRadius(mass, sma, true, materialZone));
+
+    // Empirical radius
+    const float empiricalDensity = GasGiantEmpiricalDensity(mass, ecosphereRatio);
+    const float empiricalRadius = static_cast<float>(VolumeRadius(mass, empiricalDensity));
+
+    const float jovianMass = static_cast<float>(mass * qc::SystemGenerator::SolarMassToJovianMass);
+
+    const float mix = 0.5f * qc::SystemGenerator::Clamp((jovianMass - 1.5f) / 12.5f, 0.0f, 1.0f);
+
+    return qc::SystemGenerator::Lerp(mix, kothariRadius, empiricalRadius);
 }
 
 //----------------------------------------------------------------------------
@@ -492,7 +551,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
     if (dustMass > CriticalLimit(semimajorAxis, eccentricity, star.getLuminosity()) && (gasMass / totalMass) > GaseousPlanetThreshold)
     {
         // Assume it's a successful gas giant
-        radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, true, evaluationState.materialZone));
+        radius = SynthesizeGasGiantRadius(totalMass, semimajorAxis, evaluationState.materialZone, evaluationState.ecosphereRatio);
         escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
         surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
@@ -591,7 +650,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
 #endif
                 type = PlanetType::Gaseous;
 
-                radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, true, evaluationState.materialZone));
+                radius = SynthesizeGasGiantRadius(totalMass, semimajorAxis, evaluationState.materialZone, evaluationState.ecosphereRatio);
                 escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
                 surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
@@ -645,6 +704,8 @@ void Planet::evaluate(Generator& generator, const Star& star)
             //}
         }
 
+        // TODO: Sudarsky's Gas Giant Classification.  Based on temperature, applies only to GG,
+        // not ice giant; affects albedo.  https://en.wikipedia.org/wiki/Sudarsky%27s_gas_giant_classification
         albedo = generator.randomNear(Albedo_GasGiant, ThreeSigma_Albedo_GasGiant);
 
         // surface pressure
