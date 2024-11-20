@@ -100,8 +100,8 @@ class Generator
     /// 
     /// After this method has run, the SolarSystem will have been fully evaluated.
     /// @param system The SolarSystem that will contain the results.
-    /// @param config The Config that configures the generator.
-    void generate(SolarSystem& system, const Config& config);
+    /// @param config_ The Config that configures the generator.
+    void generate(SolarSystem& system, const Config& config_);
 
     /// @brief Returns the number of protoplanets that were successfully generated.
     /// 
@@ -115,7 +115,7 @@ class Generator
 
     /// @brief Indicates whether verbose logging is enabled.
     /// @return True if we want verbose logging.
-    bool getVerbose() const { return verbose; }
+    bool getVerbose() const { return config.verboseLogging; }
 
     /// @brief Select a uniformly-distributed random number within the range
     /// [(1 - range) * center, (1 + range) * center].
@@ -262,13 +262,7 @@ class Generator
 
     bool dustRemains = false; //!< Does any dust remain for accretion?
 
-    bool generateMoonsOnCollision = false; //!< Shadow of the Config entry
-
-    double baseDustDensity = 0.0; //!< Shadow of the Config entry
-
-    double cloudEccentricity = 0.0; //!< Shadow of the Config entry
-
-    double protoplanetSeedMass = 0.0; //!< Shadow of the Config entry
+    Config config; //!< Copy of the config values.
 
     BandLimit_t protoplanetZone; //!< Shadow of the Star's protoplanet zone
 
@@ -285,11 +279,6 @@ class Generator
 
     /// @brief Count of how many protoplanets contributed to the solar system.
     uint32_t protoPlanetCount = 0;
-
-    /// @brief Should there be a plethora of debug printfs?
-    ///
-    /// This has no effect if the ALLOW_DEBUG_PRINTF is not defined in Generator.cpp.
-    bool verbose = false;
 
     void accreteDust(Protoplanet& protoplanet);
 

@@ -63,7 +63,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
 {
     // Don't use dustMass - if this a collision re-evaluation, it may fail to keep the protoplanet if
     // there's no dust left.
-    const double initialMass = protoplanetSeedMass;
+    const double initialMass = config.protoplanetSeedMass;
 
     double oldMass;
     double newMass = protoplanet.mass;
@@ -71,7 +71,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
     protoplanet.criticalMass = CriticalLimit(protoplanet.sma, protoplanet.eccentricity, stellarLuminosity);
 
 #ifdef ALLOW_DEBUG_PRINTF
-    if (verbose)
+    if (config.verboseLogging)
     {
         printf(__FUNCTION__"(): sma @ %.3lf\n", protoplanet.sma);
     }
@@ -85,7 +85,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
         oldMass = newMass;
 
         protoplanet.effectLimitScalar = pow(oldMass / (1.0 + oldMass), (1.0 / 4.0));
-        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar, cloudEccentricity);
+        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar, config.cloudEccentricity);
         protoplanet.r_inner = effectLimits.first;
         protoplanet.r_outer = effectLimits.second;
 
@@ -101,7 +101,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
     if (protoplanet.mass > initialMass)
     {
 #ifdef ALLOW_DEBUG_PRINTF
-        if (verbose && !availableDust.empty())
+        if (config.verboseLogging && !availableDust.empty())
         {
             printf("Updated dust bands:\n");
             for (const auto& d : availableDust)
@@ -137,7 +137,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
         coalescePlanetisimals(protoplanet);
     }
 #ifdef ALLOW_DEBUG_PRINTF
-    else if (verbose)
+    else if (config.verboseLogging)
     {
         printf(" ... No dust collected.  Discarding\n");
     }
@@ -148,7 +148,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
 void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
 {
 #ifdef ALLOW_DEBUG_PRINTF
-    if (verbose)
+    if (config.verboseLogging)
     {
         printf(__FUNCTION__"():\n");
     }
@@ -191,7 +191,7 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
 
             const float newE = static_cast<float>(sqrt(e2));
 
-            if (generateMoonsOnCollision)
+            if (config.generateMoonsOnCollision)
             {
 #if 0
                 if (protoplanet.mass < protoplanet.criticalMass)
@@ -208,7 +208,7 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
                         if (protoplanet.mass > planet->getMass())
                         {
 #ifdef ALLOW_DEBUG_PRINTF
-                            if (verbose)
+                            if (config.verboseLogging)
                             {
                                 printf("... Protoplanet collision.  New planet @ %.3lfAU has captured existing planet @ %.3lfAU as a moon.\n",
                                        protoplanet.sma, planet->getSemimajorAxis());
@@ -222,7 +222,7 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
                         else
                         {
 #ifdef ALLOW_DEBUG_PRINTF
-                            if (verbose)
+                            if (config.verboseLogging)
                             {
                                 printf("... Protoplanet collision.  New planet @ %.3lfAU has become a moon of existing planet @ %.3lfAU.\n",
                                        protoplanet.sma, planet->getSemimajorAxis());
@@ -247,7 +247,7 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
             newProtoplanet.gasMass = planet->getGasMassComponent() + protoplanet.gasMass;
 
 #ifdef ALLOW_DEBUG_PRINTF
-            if (verbose)
+            if (config.verboseLogging)
             {
                 printf("... Protoplanet collision.  New planet @ %.3lfAU has merged with existing planet @ %.3lfAU.  Rechecking dust accretion.\n",
                        protoplanet.sma, planet->getSemimajorAxis());
@@ -271,7 +271,7 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
     // body.
     Planet newPlanet(protoplanet.sma, static_cast<float>(protoplanet.eccentricity), protoplanet.dustMass, protoplanet.gasMass);
 #ifdef ALLOW_DEBUG_PRINTF
-    if (verbose)
+    if (config.verboseLogging)
     {
         printf("... Adding new planet.\n");
     }
@@ -326,7 +326,7 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
     static constexpr double Alpha = 5.0;
     static constexpr double N = 3.0;
 
-    const double dustDensity = baseDustDensity * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
+    const double dustDensity = config.dustDensity * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
     const double tempDensity = (dustband->dustPresent) ? dustDensity : 0.0;
 
     double massDensity;
@@ -378,15 +378,16 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
 }
 
 //----------------------------------------------------------------------------
-void Generator::generate(SolarSystem& system, const Config& config)
+void Generator::generate(SolarSystem& system, const Config& config_)
 {
     system.planet.clear();
     availableDust.clear();
     protoPlanetCount = 0;
-    verbose = config.verboseLogging;
+
+    config = config_;
 
 #ifdef ALLOW_DEBUG_PRINTF
-    if (verbose)
+    if (config.verboseLogging)
     {
         printf(__FUNCTION__"():\n");
     }
@@ -402,7 +403,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
 
         system.add(star);
 #ifdef ALLOW_DEBUG_PRINTF
-        if (verbose)
+        if (config.verboseLogging)
         {
             char st[6];
             star.getStellarClass(st, sizeof(st));
@@ -414,7 +415,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
     {
         // Make sure the star's evaluataed before we start using it.
         system.star.evaluate(this);
-        if (verbose)
+        if (config.verboseLogging)
         {
             char st[6];
             system.star.getStellarClass(st, sizeof(st));
@@ -425,10 +426,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
     const Star& star = system.star;
 
     // Store shadow values
-    generateMoonsOnCollision = false;// Not yet config.generateMoonsOnCollision;
-    cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
-    baseDustDensity = config.dustDensity;
-    protoplanetSeedMass = config.protoplanetSeedMass;
+    config.cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
     protoplanetZone = star.getProtoplanetZone();
     stellarLuminosity = star.getLuminosity();
 
@@ -436,7 +434,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
     if (!config.protoplanetSeeds.empty())
     {
 #ifdef ALLOW_DEBUG_PRINTF
-        if (verbose)
+        if (config.verboseLogging)
         {
             printf("%Iu protoplanet seeds provided in Config\n", config.protoplanetSeeds.size());
         }
@@ -455,7 +453,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
     else if (config.generateBodeSeeds)
     {
 #ifdef ALLOW_DEBUG_PRINTF
-        if (verbose)
+        if (config.verboseLogging)
         {
             printf("Generating Bode seeds:\n");
         }
@@ -501,7 +499,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
 
         protoplanetSeeds.emplace_back(s);
 #ifdef ALLOW_DEBUG_PRINTF
-        if (verbose)
+        if (config.verboseLogging)
         {
             printf(" ... n =  0 - SMA = %.3lf, ecc = %.3f\n", s.semiMajorAxis, s.eccentricity);
         }
@@ -519,7 +517,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
                 protoplanetSeeds.emplace_back(s);
                 added = true;
 #ifdef ALLOW_DEBUG_PRINTF
-                if (verbose)
+                if (config.verboseLogging)
                 {
                     printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", -n, s.semiMajorAxis, s.eccentricity);
                 }
@@ -533,7 +531,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
                 protoplanetSeeds.emplace_back(s);
                 added = true;
 #ifdef ALLOW_DEBUG_PRINTF
-                if (verbose)
+                if (config.verboseLogging)
                 {
                     printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", n, s.semiMajorAxis, s.eccentricity);
                 }
@@ -551,7 +549,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
             if (i != otherIdx)
             {
 #ifdef ALLOW_DEBUG_PRINTF
-                if (verbose)
+                if (config.verboseLogging)
                 {
                     printf(" ... Swapping [%Iu] and [%Iu]\n", i, otherIdx);
                 }
@@ -569,7 +567,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
 
     // Apply seeds
 #ifdef ALLOW_DEBUG_PRINTF
-    if (!protoplanetSeeds.empty() && verbose)
+    if (!protoplanetSeeds.empty() && config.verboseLogging)
     {
         printf("Applying protoplanet seeds:\n");
     }
@@ -589,7 +587,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
 #ifdef ALLOW_DEBUG_PRINTF
         else
         {
-            if (verbose)
+            if (config.verboseLogging)
             {
                 printf("Discarded protoplanet at SMA %.3lf: outside of protoplanet zone\n", s.semiMajorAxis);
             }
@@ -598,7 +596,7 @@ void Generator::generate(SolarSystem& system, const Config& config)
     }
 
 #ifdef ALLOW_DEBUG_PRINTF
-    if (dustRemains && verbose)
+    if (dustRemains && config.verboseLogging)
     {
         printf("Consuming remaining dust:\n");
     }
