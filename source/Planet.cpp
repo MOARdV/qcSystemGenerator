@@ -363,6 +363,21 @@ float SynthesizeGasGiantRadius(double mass, double sma, float materialZone, doub
 }
 
 //----------------------------------------------------------------------------
+/// @brief Varies the radius of a body by changing its density.
+/// @param mass Mass of the body, in Solar mass.
+/// @param radius Original radius of the body, in km.
+/// @param variance The scalar to apply to the derived density.
+/// @return The new radius of the body.
+float VaryRadius(double mass, float radius, float variance)
+{
+    // Get Density
+    double density = qc::SystemGenerator::VolumeDensity(mass, radius);
+    density *= variance;
+
+    return static_cast<float>(VolumeRadius(mass, static_cast<float>(density)));
+}
+
+//----------------------------------------------------------------------------
 /// @brief A smoothstep function
 /// @todo Double-check that's how the function is used.
 /// @param x Range over [0, 1].
@@ -671,6 +686,10 @@ void Planet::evaluate(Generator& generator, const Star& star)
     {
         // Assume it's a successful gas giant
         radius = SynthesizeGasGiantRadius(totalMass, semimajorAxis, evaluationState.materialZone, evaluationState.ecosphereRatio);
+        if (generator.getDensityVariation() > 0.0f)
+        {
+            radius = VaryRadius(totalMass, radius, generator.randomUniform(1.0f - generator.getDensityVariation(), 1.0f + generator.getDensityVariation()));
+        }
         escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
         surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
@@ -697,8 +716,12 @@ void Planet::evaluate(Generator& generator, const Star& star)
     {
         assert(!(gasMass / totalMass > GaseousPlanetThreshold) || (dustMass > CriticalLimit(semimajorAxis, eccentricity, star.getLuminosity())));
 
-        const double earthMass = totalMass * SolarMassToEarthMass;
         radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, false, evaluationState.materialZone));
+        if (generator.getDensityVariation() > 0.0f)
+        {
+            radius = VaryRadius(totalMass, radius, generator.randomUniform(1.0f - generator.getDensityVariation(), 1.0f + generator.getDensityVariation()));
+        }
+
         escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
         surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
@@ -746,6 +769,10 @@ void Planet::evaluate(Generator& generator, const Star& star)
             if (lostMass)
             {
                 radius = static_cast<float>(KothariRadius(totalMass, semimajorAxis, false, evaluationState.materialZone));
+                if (generator.getDensityVariation() > 0.0f)
+                {
+                    radius = VaryRadius(totalMass, radius, generator.randomUniform(1.0f - generator.getDensityVariation(), 1.0f + generator.getDensityVariation()));
+                }
                 escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
                 surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
@@ -770,6 +797,10 @@ void Planet::evaluate(Generator& generator, const Star& star)
                 type = PlanetType::Gaseous;
 
                 radius = SynthesizeGasGiantRadius(totalMass, semimajorAxis, evaluationState.materialZone, evaluationState.ecosphereRatio);
+                if (generator.getDensityVariation() > 0.0f)
+                {
+                    radius = VaryRadius(totalMass, radius, generator.randomUniform(1.0f - generator.getDensityVariation(), 1.0f + generator.getDensityVariation()));
+                }
                 escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
                 surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 

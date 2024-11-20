@@ -98,8 +98,9 @@ struct Config
     /// Each protoplanet that is spawned during system creation starts with this mass.  In units of solar mass.
     static constexpr double ProtoplanetSeedMass = 1.0e-15;
 
-    //--- The following were originally defined as constants in the accretion algorithm.  They are exposed
-    //--- here to allow people to tinker with what happens when they're changed.  Tweak at your own peril!
+    //--- The following three values were originally defined as constants in the accretion algorithm.  They
+    //--- are exposed here to allow people to tinker with what happens when they're changed.  Tweak at your
+    //--- own peril!
 
     /// @brief The mean eccentricity of dust in the planetary dust cloud.
     /// 
@@ -113,6 +114,16 @@ struct Config
     ///
     /// This is the initial mass that is used to accumulate dust and gas into a planet, in Solar Mass.
     double protoplanetSeedMass = ProtoplanetSeedMass;
+
+    /// @brief Allow for some variation in the density of the planets.
+    ///
+    /// Changing the density will change the volume, and thus change the radius of the bodies that are
+    /// generated.  Setting this value to 0.0 means each planet is sized deterministically.  Setting it
+    /// to a positive value will vary the density of the planet by that percentage, so the actual volume
+    /// of the planet will be in the range of [1 - densityVariation, 1 + densityVariation].
+    /// 
+    /// This value is clamped to the range [0.0, 0.1].
+    float densityVariation = 0.025f;
 
     //--- Switches
 

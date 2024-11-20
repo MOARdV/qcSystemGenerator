@@ -386,6 +386,10 @@ void Generator::generate(SolarSystem& system, const Config& config_)
 
     config = config_;
 
+    // Sanity clamps:
+    config.cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
+    config.densityVariation = Clamp(config.densityVariation, 0.0f, 0.1f);
+
 #ifdef ALLOW_DEBUG_PRINTF
     if (config.verboseLogging)
     {
@@ -426,7 +430,6 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     const Star& star = system.star;
 
     // Store shadow values
-    config.cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
     protoplanetZone = star.getProtoplanetZone();
     stellarLuminosity = star.getLuminosity();
 
