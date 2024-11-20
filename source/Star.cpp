@@ -35,7 +35,6 @@
 namespace
 {
 
-#if 1
 //----------------------------------------------------------------------------
 __inline int32_t GetBaseStellarInfoIndex(qc::SystemGenerator::StarClassification s)
 {
@@ -76,7 +75,6 @@ static constexpr double OuterZone2Scalar = 16.0;
 static constexpr double InnerZone3Scalar = 14.0;
 /// @brief Outer limit of dust Zone 3, in AU.
 static constexpr double OuterZone3Scalar = 200.0;
-#endif
 
 // Stats related to the star type.
 //
@@ -95,6 +93,28 @@ namespace qc
 
 namespace SystemGenerator
 {
+
+//----------------------------------------------------------------------------
+StarType_t GetStarType(double mass)
+{
+    // Start at the heaviest, move to the lightest.
+
+    const float m = float(mass);
+    // Start on index 3 (O3V), not 0, since the first 3 entries are bogus
+    for (uint32_t i = 3; i < stellarInfoCount; ++i)
+    {
+        if (stellarInfo[i].mass <= m)
+        {
+            const uint32_t c = i / 10u;
+            const uint32_t idx = i % 10u;
+
+            return std::make_pair(StarClassification(c), int32_t(idx));
+        }
+    }
+
+    // Hard-coded fallback: star is too small.
+    return std::make_pair(StarClassification::M_V, 9);
+}
 
 //----------------------------------------------------------------------------
 void Star::evaluate(Generator* generator)
@@ -147,28 +167,6 @@ void Star::evaluate(Generator* generator)
     zone3 = std::make_pair(sqrtLum * InnerZone3Scalar, sqrtLum * OuterZone3Scalar);
 
     evaluated = true;
-}
-
-//----------------------------------------------------------------------------
-StarType_t Star::GetStarType(double mass)
-{
-    // Start at the heaviest, move to the lightest.
-
-    const float m = float(mass);
-    // Start on index 3 (O3V), not 0, since the first 3 entries are bogus
-    for (uint32_t i = 3; i < stellarInfoCount; ++i)
-    {
-        if (stellarInfo[i].mass <= m)
-        {
-            const uint32_t c = i / 10u;
-            const uint32_t idx = i % 10u;
-
-            return std::make_pair(StarClassification(c), int32_t(idx));
-        }
-    }
-
-    // Hard-coded fallback: star is too small.
-    return std::make_pair(StarClassification::M_V, 9);
 }
 
 //----------------------------------------------------------------------------

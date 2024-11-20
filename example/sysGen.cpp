@@ -146,7 +146,7 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
     puts(planetInfo.c_str());
     planetInfo.clear();
 
-    planetInfo.append("\t").append(Planet::PlanetTypeString(pl.getPlanetType()));
+    planetInfo.append("\t").append(PlanetTypeName(pl.getPlanetType())).append(" - ").append(OrbitalZoneName(pl.getOrbitalZone())).append(" Zone");
     puts(planetInfo.c_str());
     planetInfo.clear();
 
@@ -209,14 +209,14 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
                     if (showPercent)
                     {
                         sprintf_s(buffer, "%5.1f%%", gas.fraction * 100.0f);
-                        planetInfo.append("\t\t").append(Planet::GasString(gas.gas)).append(": ").append(buffer);
+                        planetInfo.append("\t\t").append(GasName(gas.gas)).append(": ").append(buffer);
                         puts(planetInfo.c_str());
                         planetInfo.clear();
                     }
                     else if (showPPM)
                     {
                         sprintf_s(buffer, "%3.0fppm", gas.fraction * 1000000.0f);
-                        planetInfo.append("\t\t").append(Planet::GasString(gas.gas)).append(": ").append(buffer);
+                        planetInfo.append("\t\t").append(GasName(gas.gas)).append(": ").append(buffer);
                         puts(planetInfo.c_str());
                         planetInfo.clear();
                     }
@@ -231,7 +231,7 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
                         {
                             planetInfo.append(", ");
                         }
-                        planetInfo.append(Planet::GasString(gas.gas));
+                        planetInfo.append(GasName(gas.gas));
                     }
                 }
                 puts(planetInfo.c_str());
@@ -283,14 +283,15 @@ int main(int, char**)
     const bool showSummary = false;
     const bool showDetails = true;
 
+    char starClass[4];
+    ss.getStar().getStellarClass(starClass, sizeof(starClass));
+
     if (showSummary)
     {
         const size_t numPlanets = ss.getPlanets().size();
 
         OrbitalZone lastZone = OrbitalZone::Inner;
 
-        char starClass[4];
-        ss.getStar().getStellarClass(starClass, sizeof(starClass));
         printf("Central Star: %s - seed 0x%I64X\n %u protoplanets consumed\n", starClass, gen.getSeed(), gen.getProtoplanetCount());
         printf("Habitable Zone: %.3lfAU - %.3lfAU\nEcosphere     : %.3lfAU\n\n",
                ss.getStar().getHabitableZone().first, ss.getStar().getHabitableZone().second,
@@ -361,6 +362,8 @@ int main(int, char**)
 
     if (showDetails)
     {
+        printf("\nCentral Star: %s\n", starClass);
+
         int32_t ordinal = 1;
         for (const auto& pl : ss.getPlanets())
         {

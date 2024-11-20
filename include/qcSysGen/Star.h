@@ -24,6 +24,7 @@
 ****************************************************************************/
 #pragma once
 
+#include "Enums.h"
 #include "Equations.h"
 
 #include <string>
@@ -33,18 +34,6 @@ namespace qc
 
 namespace SystemGenerator
 {
-
-//--- Enumerations
-
-/// @brief A broad classification of the zones of a planetary system, based on position relative to the
-/// habitable zone and the snow line.
-enum class OrbitalZone
-{
-    Inner, //!< Between the star and the inner edge of the habitable zone.
-    Habitable, //!< Between the bounds of the habitable zone.
-    Middle, //!< Outside the habitable zone, inside the snow line.
-    Outer, //!< Outside the snow line.
-};
 
 class Generator;
 
@@ -72,6 +61,14 @@ enum class StarClassification : uint32_t
 
 /// @brief Encapsulates a star's classification.
 typedef std::pair<StarClassification, int32_t> StarType_t;
+
+/// @brief Given a mass, return the star type that corresponds best with that mass.
+/// 
+/// Values outside the supported range will be clamped.
+/// @note Only main sequence stars are currently supported.
+/// @param mass The mass of the star, in Solar masses.
+/// @return The stellar classification for that star.
+StarType_t GetStarType(double mass);
 
 /// @brief Encapsulates the data describing a star.
 ///
@@ -172,14 +169,6 @@ class Star
     /// @brief Get the star's classification and subtype.
     /// @return The star's type.
     StarType_t&& getStarType() const { return std::make_pair(type, subtype); }
-
-    /// @brief Given a mass, return the star type that corresponds best with that mass.
-    /// 
-    /// Values outside the supported range will be clamped.
-    /// @note Only main sequence stars are currently supported.
-    /// @param mass The mass of the star, in Solar masses.
-    /// @return The stellar classification for that star.
-    static StarType_t GetStarType(double mass);
 
     /// @brief Place the stellar class of this star in the provided string.
     /// 

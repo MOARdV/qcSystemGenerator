@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Consts.h"
+#include "Enums.h"
 
 #include <forward_list>
 #include <string>
@@ -35,50 +36,6 @@ namespace qc
 
 namespace SystemGenerator
 {
-
-/// @brief Enumeration of gases of interest in planetary atmospheres
-///
-/// @note If this is changed, update Planet::GasString()
-enum class Gas
-{
-    Hydrogen,
-    Helium,
-    Nitrogen,
-    Oxygen,
-    Neon,
-    Argon,
-    Krypton,
-    Xenon,
-    Ammonia,
-    Water,
-    CarbonDioxide,
-    Ozone,
-    Methane
-};
-
-/// @brief Enumeration of planet types
-///
-/// @note If there are changes here, don't forget to update Planet::PlanetTypeString().
-enum class PlanetType
-{
-    Unknown, //!< Undetermined type
-
-    //--- Rocky planet types
-    Rocky, //!< Catch-all for non-gaseous planets.  Terrestrial planets.
-
-    AsteroidBelt, //!< A collection of boulder-to-mountain sized rocky and metallic objects.
-    DwarfPlanet, //!< A smaller body that is too small to establish orbital dominance.
-    IcePlanet, //!< A colder terrestrial planet dominated by surface ices.
-    Terrestrial, //!< A rocky planet with atmosphere and liquid hydrosphere.
-    Ocean, //!< A terrestrial world characterized by near-total coverage in water.
-
-    //--- Gaseous planet types
-    Gaseous,    //!< Catch-all for a planet with a substantial volatile gas composition.  Used as an interim classification
-
-    IceGiant,   //!< The smaller sized gaseous planets, also called Neptunian.  Uranus and Neptune fall into this category.  Roughly 2.0 (+/-0.7)x M(Earth) to 0.41 (+/-0.07)x M(Jupiter).
-    GasGiant,   //!< Large planets primarily composed of hydrogen and helium.  Jupiter falls into this category; Saturn barely makes the cutoff, as well.  0.41x M(Jupiter) on up.
-    BrownDwarf, //!< Large gas giants, but not large enough to sustain nuclear fusion of hydrogen.  13x to 80x M(Jupiter).
-};
 
 /// @brief Major components of an atmosphere
 struct AtmosphereComponent
@@ -136,11 +93,6 @@ class Planet
     /// @param star The star at the center of the SolarSystem.
     void evaluate(Generator& generator, const Star& star);
 
-    /// @brief Return a string naming the Gas
-    /// @param gas The Gas to name
-    /// @return The corresponding string
-    static const std::string& GasString(Gas gas);
-
     /// @brief Returns a vector of the major components of the planet's atmosphere.
     /// @return The atmospheric components vector.
     const std::vector<AtmosphereComponent>& getAtmo() const { return atmosphere; }
@@ -197,6 +149,10 @@ class Planet
     /// @return The name of the planet
     const std::string& getName() const { return name; }
 
+    /// @brief Return the orbital zone classification of this planet.
+    /// @return The OrbitalZone.
+    OrbitalZone getOrbitalZone() const { return orbitalZone; }
+
     /// @brief Returns the enumerated classification of the planet type.
     /// @return The planet type.
     PlanetType getPlanetType() const { return type; }
@@ -235,11 +191,6 @@ class Planet
             (type == PlanetType::GasGiant) ||
             (type == PlanetType::BrownDwarf);
     }
-
-    /// @brief Returns an English string corresponding to the PlanetType.
-    /// @param type The PlanetType to stringify.
-    /// @return The string corresponding to the type.
-    static const std::string& PlanetTypeString(PlanetType type);
 
     /// @brief Zero all values, including the planet's name.
     /// @todo: remove reset() and simply use a constructor
@@ -307,6 +258,7 @@ class Planet
     float axialTilt; //!< Angle between the planet's pole of rotation and the normal of the orbital plane, radians.  EDITABLE
     float orbitalDominance; //!< How thoroughly does a planet clear out its orbital neighborhood.  1.0 is the threshold between dwarf planets and planets.
     PlanetType type; //!< Type of planet.
+    OrbitalZone orbitalZone; //!< Orbital zone classification of the planet.
 
     float dayLength; //!< Length of the local day, in hours.  EDITABLE
     float spinResonanceFactor; //!< If non-zero, the factor used to determine the spin resonance of the body's day.  If zero, the body does not have a resonant day length.

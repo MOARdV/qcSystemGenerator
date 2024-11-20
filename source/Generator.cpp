@@ -399,7 +399,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     if (config.generateStar)
     {
         const float starMass = randomUniform(0.59f, 1.30f);
-        const StarType_t type = Star::GetStarType(starMass);
+        const StarType_t type = GetStarType(starMass);
 
         Star star(type.first, type.second);
         star.setName(system.star.getName());

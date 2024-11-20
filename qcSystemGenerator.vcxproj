@@ -86,6 +86,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="source\Enums.cpp" />
     <ClCompile Include="source\Equations.cpp" />
     <ClCompile Include="source\Generator.cpp" />
     <ClCompile Include="source\Planet.cpp" />
@@ -95,6 +96,7 @@
   <ItemGroup>
     <ClInclude Include="include\qcSysGen\Config.h" />
     <ClInclude Include="include\qcSysGen\Consts.h" />
+    <ClInclude Include="include\qcSysGen\Enums.h" />
     <ClInclude Include="include\qcSysGen\Equations.h" />
     <ClInclude Include="include\qcSysGen\Generator.h" />
     <ClInclude Include="include\qcSysGen\Planet.h" />

@@ -813,6 +813,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
     }
 
     density = static_cast<float>(VolumeDensity(totalMass, radius));
+    orbitalZone = star.getOrbitalZone(semimajorAxis);
 
     calculateDayLength(evaluationState);
 
@@ -925,8 +926,8 @@ void Planet::evaluate(Generator& generator, const Star& star)
 #ifdef ALLOW_DEBUG_PRINTF
             if (generator.getVerbose())
             {
-                const std::string& tStr = PlanetTypeString(type);
-                printf(" ... Planet w/o atmo - classified as %s\n", tStr.c_str());
+                const char* tStr = PlanetTypeName(type);
+                printf(" ... Planet w/o atmo - classified as %s\n", tStr);
             }
 #endif
         }
@@ -1104,29 +1105,6 @@ void Planet::exchange(Planet& p)
 #endif
 
 //----------------------------------------------------------------------------
-const std::string& Planet::GasString(Gas gas)
-{
-    static const std::string gases[] =
-    {
-        "Hydrogen",
-        "Helium",
-        "Nitrogen",
-        "Oxygen",
-        "Neon",
-        "Argon",
-        "Krypton",
-        "Xenon",
-        "Ammonia",
-        "Water Vapor",
-        "Carbon Dioxide",
-        "Ozone",
-        "Methane"
-    };
-
-    return gases[uint32_t(gas)];
-}
-
-//----------------------------------------------------------------------------
 double Planet::getGasLife(double molecularMass) const
 {
     const double v = RMSVelocity(molecularMass, exosphereTemperature) * CmPerM;
@@ -1265,27 +1243,6 @@ float Planet::minimumMolecularWeight(double stellarAge) const
     }
 
     return static_cast<float>(previousMass + molecularMass) * 0.5f;
-}
-
-//----------------------------------------------------------------------------
-const std::string& Planet::PlanetTypeString(PlanetType type)
-{
-    static const std::string planetType[] =
-    {
-        "Unknown",
-        "Rocky Planet",
-        "Asteroid Belt",
-        "Dwarf Planet",
-        "Ice Planet",
-        "Terrestrial Planet",
-        "Ocean Planet",
-        "Gaseous",
-        "Ice Giant",
-        "Gas Giant",
-        "Brown Dwarf"
-    };
-
-    return planetType[uint32_t(type)];
 }
 
 //----------------------------------------------------------------------------
