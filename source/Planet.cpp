@@ -37,6 +37,112 @@ namespace
 
 // Constants used during evaluation
 
+//--- Reference albedo
+
+/// @brief Albedo of clouds.
+static constexpr float Albedo_Cloud = 0.52f;
+
+/// @brief Albedo of the Earth.
+static constexpr float Albedo_Earth = 0.3f;
+
+/// @brief The mean albedo of our solar system's 4 gaseous worlds.
+static constexpr float Albedo_GasGiant = 0.492f;
+
+/// @brief Albedo of ice in an atmosphere.
+static constexpr float Albedo_Ice = 0.7f;
+
+/// @brief Albedo of ice outside of an atmosphere.
+static constexpr float Albedo_IceAirless = 0.4f;
+
+/// @brief Albedo of rock in an atmosphere.
+static constexpr float Albedo_Rock = 0.15f;
+
+/// @brief Albedo of rock outside of an atmosphere.
+static constexpr float Albedo_RockAirless = 0.07f;
+
+/// @brief Albedo of liquid water.
+static constexpr float Albedo_Water = 0.04f;
+
+
+//--- Earth Reference Values
+
+/// @brief Change in Earth's angular velocity, in radians/sec per year.
+static constexpr double ChangeInEarthAngularVelocity = -1.3e-15;
+
+static constexpr float EarthAverageTemperature = 273.15f + 14.0f; // Kelvin
+
+static constexpr double EarthAxialTilt = 23.4; // degrees
+
+static constexpr double EarthDensity = 5.52; // g/cc
+
+static constexpr float EarthEscapeVelocity = 11186.0f; // m/s
+
+/// @brief Effective temperature of the earth, in Kelvin.  Fogg originally used 255.
+static constexpr float EarthEffectiveTemperature = 250.0f;
+
+/// @brief Temperature of Earth's exosphere, in Kelvin.
+static constexpr float EarthExosphereTemperature = 1273.0f;
+
+/// @brief Percentage of Earth's surface covered with liquid water.
+static constexpr double EarthHydrosphere = 0.708;
+
+/// @brief Mass of the Earth in grams.
+static constexpr double EarthMassInGrams = 5.977e27;
+
+/// @brief Radius of the Earth in km.
+static constexpr double EarthRadiusKm = 6378.0;
+
+/// @brief Partial pressure of oxygen at sea level, in millibars.
+static constexpr float EarthPartialPressureOxygen = qc::SystemGenerator::EarthSurfacePressureMb * 0.2095f;
+
+
+//--- Reference Values
+
+/// @brief The freezing point of water at 1 atm, in Kelvin.
+static constexpr double FreezingPointWater = 273.15;
+
+/// @brief Weight of molecular hydrogen.
+static constexpr double Weight_MolecularHydrogen = 2.0;
+
+/// @brief Weight of molecular helium.
+static constexpr double Weight_MolecularHelium = 4.0;
+
+/// @brief Weight of water.
+static constexpr double Weight_WaterVapor = 18.0;
+
+/// @brief Weight of molecular nitrogen.
+static constexpr double Weight_MolecularNitrogen = 28.0;
+
+
+//--- Mass Thresholds
+
+/// @brief Upper limit for a planet to be considered an asteroid belt instead, in Solar masses.
+static constexpr double AsteroidMassLimit = 0.001 / qc::SystemGenerator::SolarMassToEarthMass;
+
+/// @brief Transition from Jovian gas giant to brown dwarf, in Jovian mass.
+static constexpr double BrownDwarfTransition = 13.0;
+
+/// @brief Center of the transition from Ice Giant to Gas Giant, in Jovian mass.
+static constexpr double IceGiantTransition = 0.414;
+
+/// @brief Center of the transition point from rocky world to gaseous world, in Solar masses.
+///
+/// From Chen, et al. 2017.  Original value is 2.04 +0.66/-0.59 M(Earth).
+static constexpr double RockyTransition = 2.04 / qc::SystemGenerator::SolarMassToEarthMass;
+
+
+//--- Other
+
+/// @brief The ratio of RMS velocity to escape velocity.
+///
+/// The original accrete used 5.0.  Stargen used 6.0.  I don't know why the change.
+static constexpr double GasRetentionThreshold = 5.0;
+
+/// @brief The ratio of escape velocity to RMS velocity.
+static constexpr double EscapeToRmsVelocity = 1.0 / GasRetentionThreshold;
+
+
+//--- Unsorted
 /// @brief Factor used to convert water vapor mass to cloud coverage, km^2 / kg
 static constexpr double CloudCoverageFactor = 1.839e-8;
 
@@ -125,8 +231,8 @@ float BoilingPoint(float surfacePressureMb)
 float EffectiveTemperature(double distanceRatio, float albedo)
 {
     return static_cast<float>(sqrtf(static_cast<float>(1.0 / distanceRatio))
-                              * powf((1.0f - albedo) / (1.0f - qc::SystemGenerator::Albedo_Earth), 0.25f)
-                              * qc::SystemGenerator::EarthEffectiveTemperature);
+                              * powf((1.0f - albedo) / (1.0f - Albedo_Earth), 0.25f)
+                              * EarthEffectiveTemperature);
 }
 
 //----------------------------------------------------------------------------
@@ -147,6 +253,19 @@ float GasGiantEmpiricalDensity(double mass, double ecosphereRatio)
     const float scalar = std::max(1.2f, 0.8f + densityAdjustment);
 
     return scalar * term1 * term2;
+}
+
+//----------------------------------------------------------------------------
+/// @brief Returns smallest molecular weight retained by a planet.
+/// 
+/// This equation is RMSVelocity rearranged to solve for molecularWeight
+/// given escapeVelocity.
+/// @param escapeVelocity Escape velocity in m/s
+/// @param exosphereTemperature Temperature of the exosphere, in Kelvin.
+/// @return The minimum molecular weight.
+inline double MolecularLimit(double escapeVelocity, double exosphereTemperature)
+{
+    return 3.0 * qc::SystemGenerator::MolarGasConstant * exosphereTemperature / pow(escapeVelocity * EscapeToRmsVelocity, 2.0);
 }
 
 //----------------------------------------------------------------------------
@@ -179,24 +298,24 @@ float Opacity(float minMolecularWeight, float surfacePressure)
         opticalDepth = opticalDepth + 0.05f;
     }
 
-    using qc::SystemGenerator::EarthSurfacePressure;
-    if (surfacePressure >= (70.0f * EarthSurfacePressure))
+    using qc::SystemGenerator::EarthSurfacePressureMb;
+    if (surfacePressure >= (70.0f * EarthSurfacePressureMb))
     {
         opticalDepth = opticalDepth * 8.333f;
     }
-    else if (surfacePressure >= (50.0f * EarthSurfacePressure))
+    else if (surfacePressure >= (50.0f * EarthSurfacePressureMb))
     {
         opticalDepth = opticalDepth * 6.666f;
     }
-    else if (surfacePressure >= (30.0f * EarthSurfacePressure))
+    else if (surfacePressure >= (30.0f * EarthSurfacePressureMb))
     {
         opticalDepth = opticalDepth * 3.333f;
     }
-    else  if (surfacePressure >= (10.0f * EarthSurfacePressure))
+    else  if (surfacePressure >= (10.0f * EarthSurfacePressureMb))
     {
         opticalDepth = opticalDepth * 2.0f;
     }
-    else if (surfacePressure >= (5.0f * EarthSurfacePressure))
+    else if (surfacePressure >= (5.0f * EarthSurfacePressureMb))
     {
         opticalDepth = opticalDepth * 1.5f;
     }
@@ -498,7 +617,7 @@ void Planet::calculateSurfacePressure(Generator& generator, const EvaluationStat
 
         surfacePressure = static_cast<float>(
             volatileGasInventory * getSurfaceGravity() *
-            EarthSurfacePressure * BarPerMillibar /
+            EarthSurfacePressureMb * BarPerMillibar /
             (radiusRatio * radiusRatio)
             );
 
@@ -535,7 +654,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
 
     orbitalDominance = OrbitalDominance(totalMass, semimajorAxis);
 
-    axialTilt = generator.randomTilt(semimajorAxis);
+    axialTilt = generator.randomTilt(semimajorAxis, EarthAxialTilt);
 
     exosphereTemperature = static_cast<float>(EarthExosphereTemperature / (evaluationState.ecosphereRatio * evaluationState.ecosphereRatio));
 
@@ -613,7 +732,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
             }
 
             const double heMass = (gasMass - h2Mass) * 0.999;
-            const double heLife = getGasLife(Weight_Helium);
+            const double heLife = getGasLife(Weight_MolecularHelium);
             if (heLife < star.getAge())
             {
                 const double heLoss = ((1.0 - (1.0 / exp(star.getAge() / heLife))) * heMass);
@@ -760,7 +879,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
         if (surfacePressure < 1.0f)
         {
             // Effectively no atmosphere (sub-1mb) - is it small enough to be an asteroid belt?
-            if (totalMass * SolarMassToEarthMass < AsteroidMassLimit)
+            if (totalMass < AsteroidMassLimit)
             {
                 type = PlanetType::AsteroidBelt;
             }
@@ -1196,6 +1315,9 @@ void Planet::updateSurfaceConditions(Generator& generator, const EvaluationState
     }
     else
     {
+        // Mass of water per square kilometer, in grams.
+        static constexpr double EarthWaterMassPerKm2 = 3.83e15;
+
         // TODO: Look up the papers listed in Burke 1985 to see if I can reconcile this
         // equation.
         const double surfaceArea = 4.0 * PI * (radius * radius);

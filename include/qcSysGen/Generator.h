@@ -151,10 +151,11 @@ class Generator
 
     /// @brief Return a random axial tilt, per the accrete algorithm
     /// @param sma The semi-major axis of the body that we're tilting.
+    /// @param medianTilt The median axial tilt.
     /// @return A normalized axial tilt in the range [0, 180].
-    float randomTilt(double sma)
+    float randomTilt(double sma, double medianTilt)
     {
-        float tilt = static_cast<float>(pow(sma, 0.2) * randomAbout(EarthAxialTilt, 0.4));
+        float tilt = static_cast<float>(pow(sma, 0.2) * randomAbout(medianTilt, 0.4));
         tilt = remainder(tilt, 360.0f);
         if (tilt > 180.0f)
         {

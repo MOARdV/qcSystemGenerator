@@ -171,20 +171,6 @@ double Luminosity(double stellarMass);
 
 //----------------------------------------------------------------------------
 
-/// @brief Returns smallest molecular weight retained by a planet.
-/// 
-/// This equation is RMSVelocity rearranged to solve for molecularWeight
-/// given escapeVelocity.
-/// @param escapeVelocity Escape velocity in m/s
-/// @param exosphereTemperature Temperature of the exosphere, in Kelvin.
-/// @return The minimum molecular weight.
-inline double MolecularLimit(double escapeVelocity, double exosphereTemperature)
-{
-    return 3.0 * MolarGasConstant * exosphereTemperature / pow(escapeVelocity * EscapeToRmsVelocity, 2.0);
-}
-
-//----------------------------------------------------------------------------
-
 /// @brief Returns a scalar representing the orbital dominance of a body orbiting
 /// a star.
 /// 
