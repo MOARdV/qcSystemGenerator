@@ -210,45 +210,45 @@ class Star
     /// from one Zone to the next.
     /// 
     /// Zone classification from Pollard 1979 by way of Fogg 1985.
-    /// @param radius The distance from the star, in AU.
+    /// @param sma The distance from the star, in AU.
     /// @return The zone, as described.
-    float getMaterialZone(double radius) const
+    float getMaterialZone(double sma) const
     {
-        if (radius < zone2.first)
+        if (sma < zone2.first)
         {
             return 1.0f;
         }
-        else if (radius < zone1.second)
+        else if (sma < zone1.second)
         {
-            return 1.0f + static_cast<float>(InverseLerp(radius, zone2.first, zone1.second));
+            return 1.0f + static_cast<float>(InverseLerp(sma, zone2.first, zone1.second));
         }
-        else if (radius < zone3.first)
+        else if (sma < zone3.first)
         {
             return 2.0f;
         }
         else
         {
             // InverseLerp clamps to 1.0 for `radius` > outerZone2().
-            return 2.0f + static_cast<float>(InverseLerp(radius, zone3.first, zone2.second));
+            return 2.0f + static_cast<float>(InverseLerp(sma, zone3.first, zone2.second));
         }
     }
 
     /// @brief Classifies the radius into one of the orbital zones.
     /// 
     /// These zones do not correspond to the material zones.
-    /// @param radius The distance from the star, in AU.
+    /// @param sma The distance from the star, in AU.
     /// @return The OrbitalZone in which the radius resides.
-    OrbitalZone getOrbitalZone(double radius) const
+    OrbitalZone getOrbitalZone(double sma) const
     {
-        if (radius < habitableZone.first)
+        if (sma < habitableZone.first)
         {
             return OrbitalZone::Inner;
         }
-        else if (radius < habitableZone.second)
+        else if (sma < habitableZone.second)
         {
             return OrbitalZone::Habitable;
         }
-        else if (radius < snowLine)
+        else if (sma < snowLine)
         {
             return OrbitalZone::Middle;
         }
