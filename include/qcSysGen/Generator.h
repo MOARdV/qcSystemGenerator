@@ -103,6 +103,12 @@ class Generator
     /// @param config_ The Config that configures the generator.
     void generate(SolarSystem& system, const Config& config_);
 
+    /// @brief Returns the percentage random variation in density to use generating a planet.
+    /// 
+    /// This variation allows for a little more variety in planetary sizes and characteristics.
+    /// @return The density variation percentage, [0, 1].
+    float getDensityVariation() const { return config.densityVariation; }
+
     /// @brief Returns the number of protoplanets that were successfully generated.
     /// 
     /// This number may or may not correspond to the final planet count.
@@ -119,12 +125,13 @@ class Generator
 
     /// @brief Select a uniformly-distributed random number within the range
     /// [(1 - range) * center, (1 + range) * center].
+    /// @tparam T_ The type of value to return (float or double)
     /// @param center The center / mean value.
     /// @param range The range about center, as a ratio.
     /// @return A random number in the range.
-    double randomAbout(double center, double range)
+    template<class T_> T_ randomAbout(T_ center, T_ range)
     {
-        return center * randomUniform(1.0 - range, 1.0 + range);
+        return center * randomUniform((T_)(1) - range, (T_)(1) + range);
     }
 
     /// @brief Return a random eccentricity, per the accrete algorithm.
