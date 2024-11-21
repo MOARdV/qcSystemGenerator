@@ -367,7 +367,7 @@ class Planet
     /// planet.
     /// @param molecularMass Molecular mass of the gas in question.
     /// @return Years required for 1/e of the gas to escape.
-    double getGasLife(double molecularMass) const;
+    double getGasLife(float molecularMass) const;
 
     /// @brief Returns the temperature effect of greenhouse gases.
     /// 
@@ -381,6 +381,8 @@ class Planet
     /// @return Temperature increase in Kelvin.
     float greenhouseRise(float effectiveTemperature) const;
 
+    /// @brief Set/reset surface conditions to known values prior to iterating over them.
+    /// @param evaluationState Transient values used during generation
     void initializeSurfaceConditions(const EvaluationState& evaluationState);
 
     /// @brief Use an iterative process to determine surface temperature,
@@ -395,6 +397,8 @@ class Planet
     /// 
     /// Depends on values for escapeVelocity, exosphereTemperature,
     /// radius, and surfaceAcceleration.
+    /// 
+    /// Adapted from Burrows 2008.
     /// @param stellarAge The age of the star, in years.
     /// @return The lightest retained molecular weight.
     float minimumMolecularWeight(double stellarAge) const;

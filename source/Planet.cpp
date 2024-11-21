@@ -263,9 +263,9 @@ float GasGiantEmpiricalDensity(double mass, double ecosphereRatio)
 /// @param escapeVelocity Escape velocity in m/s
 /// @param exosphereTemperature Temperature of the exosphere, in Kelvin.
 /// @return The minimum molecular weight.
-inline double MolecularLimit(double escapeVelocity, double exosphereTemperature)
+inline float MolecularLimit(double escapeVelocity, double exosphereTemperature)
 {
-    return 3.0 * qc::SystemGenerator::MolarGasConstant * exosphereTemperature / pow(escapeVelocity * EscapeToRmsVelocity, 2.0);
+    return static_cast<float>(3.0 * qc::SystemGenerator::MolarGasConstant * exosphereTemperature / pow(escapeVelocity * EscapeToRmsVelocity, 2.0));
 }
 
 //----------------------------------------------------------------------------
@@ -693,7 +693,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
         escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
         surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-        minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+        minMolecularWeight = minimumMolecularWeight(star.getAge());
 
         const bool sufficientMolecularRetention = (minMolecularWeight <= 4.0f);
         const bool sufficientOverallMass = (totalMass > RockyTransition);
@@ -725,7 +725,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
         escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
         surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-        minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+        minMolecularWeight = minimumMolecularWeight(star.getAge());
 
         // If this is a failed gaseous planet (too low of a gas mass ratio, or too low of a gas retention), account for H2 and He loss.
         if ((gasMass / totalMass) > IcePlanetThreshold && totalMass > RockyTransition)
@@ -776,7 +776,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
                 escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
                 surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-                minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+                minMolecularWeight = minimumMolecularWeight(star.getAge());
                 orbitalDominance = OrbitalDominance(totalMass, semimajorAxis);
             }
 
@@ -804,7 +804,7 @@ void Planet::evaluate(Generator& generator, const Star& star)
                 escapeVelocity = static_cast<float>(EscapeVelocity(totalMass, radius));
                 surfaceAcceleration = static_cast<float>(GravityConstant * (totalMass * SolarMassInGrams) / pow(radius * CmPerKm, 2.0) * MPerCm);
 
-                minMolecularWeight = static_cast<float>(minimumMolecularWeight(star.getAge()));
+                minMolecularWeight = minimumMolecularWeight(star.getAge());
 
                 // TODO: Clear out the rocky planet specific values
                 runawayGreenhouse = false;
@@ -1105,7 +1105,7 @@ void Planet::exchange(Planet& p)
 #endif
 
 //----------------------------------------------------------------------------
-double Planet::getGasLife(double molecularMass) const
+double Planet::getGasLife(float molecularMass) const
 {
     const double v = RMSVelocity(molecularMass, exosphereTemperature) * CmPerM;
 
@@ -1196,53 +1196,65 @@ float Planet::minimumMolecularWeight(double stellarAge) const
     // closest to the age of the planetary system.  We initialize the search to
     // the molecular limit of the planet, and check its gas life.
 
-    double molecularMass = MolecularLimit(escapeVelocity, exosphereTemperature);
-    double previousMass = molecularMass;
+    // Upper bound - leads to a gas life > stellar age
+    float upperMass = MolecularLimit(escapeVelocity, exosphereTemperature);
+    // Lower bound - leads to a gas life < stellar age
+    float lowerMass = upperMass;
 
-    double gasLife = getGasLife(molecularMass);
+    double gasLife = getGasLife(upperMass);
 
     if (gasLife > stellarAge)
     {
-        // Gas retention is high for the starting mass.  Reduce the weight to find the right range.
-        while (gasLife > stellarAge)
+        // The initial value exceeds the stellar age, so we need to find a lighter
+        // molecular weight.
+        do
         {
-            previousMass = molecularMass;
-            molecularMass *= 0.5;
+            lowerMass *= 0.75f;
 
-            gasLife = getGasLife(molecularMass);
-        }
+            gasLife = getGasLife(lowerMass);
+        } while (gasLife > stellarAge);
     }
     else
     {
-        // Gas retention is low.  Increase the weight to find something that's retained.
+        // The initial value is lighter than the limits based on planet age,
+        // so search for a heavier molecule.
         while (gasLife < stellarAge)
         {
-            previousMass = molecularMass;
-            molecularMass *= 2.0;
+            upperMass *= 1.35f;
 
-            gasLife = getGasLife(molecularMass);
+            gasLife = getGasLife(upperMass);
         }
-        // molecularMass is the lower of the two values in the binary search below.
-        std::swap(previousMass, molecularMass);
     }
 
-    // Binary search between the two end points
-    while (previousMass - molecularMass > 0.1)
+    if (upperMass <= 1.0)
     {
-        const double midMass = (previousMass + molecularMass) * 0.5;
-        gasLife = getGasLife(molecularMass);
+        // We can retain atomic hydrogen ... I think we can skip the search.
+        return 1.0;
+    }
+
+    int32_t iterations = 0;
+
+    // Binary search between the two end points
+    // FWIW, the search constraint probably ought to be a percentage, not an absolute
+    // difference.  I'm not sure it's that big of a deal, though.
+    while (upperMass - lowerMass > 0.1f)
+    {
+        const float midMass = (upperMass + lowerMass) * 0.5f;
+        gasLife = getGasLife(midMass);
+        const double ageDelta = abs(gasLife - stellarAge);
 
         if (gasLife < stellarAge)
         {
-            molecularMass = midMass;
+            lowerMass = midMass;
         }
         else
         {
-            previousMass = midMass;
+            upperMass = midMass;
         }
+        ++iterations;
     }
 
-    return static_cast<float>(previousMass + molecularMass) * 0.5f;
+    return (upperMass + lowerMass) * 0.5f;
 }
 
 //----------------------------------------------------------------------------

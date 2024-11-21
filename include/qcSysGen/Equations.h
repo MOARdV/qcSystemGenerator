@@ -206,7 +206,7 @@ double Period(double distance, double mass1, double mass2);
 /// @param molecularWeight Molecular weight to compute.
 /// @param exosphereTemperature Exosphere temperature, in Kelvin.
 /// @return RMS velocity, in m/s.
-inline double RMSVelocity(double molecularWeight, double exosphereTemperature)
+inline double RMSVelocity(float molecularWeight, float exosphereTemperature)
 {
     return sqrt(3.0 * MolarGasConstant * exosphereTemperature / molecularWeight);
 }
