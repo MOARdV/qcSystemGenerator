@@ -190,7 +190,14 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
             puts(planetInfo.c_str());
             planetInfo.clear();
 
-            sprintf_s(buffer, "%7.3fatm - %3.0f%% cloud coverage", pl.getSurfacePressure() / EarthSurfacePressureMb, 100.0f * pl.getCloudPercentage());
+            if (pl.getSurfacePressure() > 0.0f)
+            {
+                sprintf_s(buffer, "%7.3fatm - %3.0f%% cloud coverage", pl.getSurfacePressure() / EarthSurfacePressureMb, 100.0f * pl.getCloudPercentage());
+            }
+            else
+            {
+                strcpy_s(buffer, "No atmosphere");
+            }
             planetInfo.append("\tSurface Press: ").append(buffer);
             puts(planetInfo.c_str());
             planetInfo.clear();
