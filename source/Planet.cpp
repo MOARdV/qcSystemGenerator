@@ -1149,8 +1149,8 @@ void Planet::initializeSurfaceConditions(const EvaluationState& evaluationState)
     albedo = Albedo_Earth;
 
     const float effectiveTemp = EffectiveTemperature(evaluationState.ecosphereRatio, albedo);
-    const float greenhouseTemp = greenhouseRise(effectiveTemp);
-    meanSurfaceTemperature = effectiveTemp + greenhouseTemp;
+    const float rise = greenhouseRise(effectiveTemp);
+    meanSurfaceTemperature = effectiveTemp + rise;
 
     setTemperatureRange();
 
@@ -1387,8 +1387,8 @@ void Planet::updateSurfaceConditions(Generator& generator, const EvaluationState
     // TODO: Consolidate into a single method?  effectiveTemperature is used only
     // in conjunction with greenhouseRise
     const float effectiveTemp = EffectiveTemperature(evaluationState.ecosphereRatio, albedo);
-    const float greenhouseTemp = greenhouseRise(effectiveTemp);
-    const float newSurfaceTemp = effectiveTemp + greenhouseTemp;
+    const float rise = greenhouseRise(effectiveTemp);
+    const float newSurfaceTemp = effectiveTemp + rise;
 
     meanSurfaceTemperature = (2.0f * meanSurfaceTemperature + newSurfaceTemp) / 3.0f;
 
