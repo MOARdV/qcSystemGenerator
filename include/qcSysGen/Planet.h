@@ -97,6 +97,10 @@ class Planet
     /// @return The atmospheric components vector.
     const std::vector<AtmosphereComponent>& getAtmo() const { return atmosphere; }
 
+    /// @brief Returns the apoapsis (aphelion, apastron, farthest point from the star) of the planet's orbit.
+    /// @return Apoapsis, in AU.
+    double getApoapsis() const { return apoapsis; }
+
     /// @brief The percentage of the planet obscured by clouds.
     /// @return The cloud coverage, in the range [0.0, 1.0].
     float getCloudPercentage() const { return cloudCoverage; }
@@ -134,6 +138,11 @@ class Planet
     /// @return The ice percentage, in the range [0.0, 1.0].
     float getIcePercentage() const { return iceCoverage; }
 
+    /// @brief Returns the inclination of the planet's orbit relative to the star's equator.
+    /// @todo The other angles are in radians, maybe this one should be, too?
+    /// @return Inclination, in degrees.
+    float getInclination() const { return inclination; }
+
     /// @brief Mass of the planet.
     /// @return Mass, in Solar masses.
     double getMass() const { return totalMass; }
@@ -152,6 +161,10 @@ class Planet
     /// @brief Return the orbital zone classification of this planet.
     /// @return The OrbitalZone.
     OrbitalZone getOrbitalZone() const { return orbitalZone; }
+
+    /// @brief Returns the periapsis (perihelion, periastron, closest point to the star) of the planet's orbit.
+    /// @return Periapsis, in AU.
+    double getPeriapsis() const { return periapsis; }
 
     /// @brief Returns the enumerated classification of the planet type.
     /// @return The planet type.

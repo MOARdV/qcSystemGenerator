@@ -291,7 +291,7 @@ float Opacity(float minMolecularWeight, float surfacePressure)
     {
         opticalDepth = 0.15f;
     }
-    else if(minMolecularWeight >= 20.0f)
+    else if (minMolecularWeight >= 20.0f)
     {
         opticalDepth = 1.0f;
     }

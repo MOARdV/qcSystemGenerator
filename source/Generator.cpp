@@ -389,6 +389,12 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     // Sanity clamps:
     config.cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
     config.densityVariation = Clamp(config.densityVariation, 0.0f, 0.1f);
+    config.inclinationMean = fabsf(config.inclinationMean);
+    while (config.inclinationMean >= 180.0f)
+    {
+        config.inclinationMean -= 180.0f;
+    }
+    config.inclinationStdDev = fabsf(config.inclinationStdDev);
 
 #ifdef ALLOW_DEBUG_PRINTF
     if (config.verboseLogging)
@@ -617,7 +623,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     // Generate moons
     if (config.generateMoons)
     {
-        // TODO
+        // TODO: Generate moons
     }
 
 
@@ -626,8 +632,12 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     for (auto& p : planetList)
     {
         // Finalize values for the planet:
-        // TODO: check for possible ranges for inclination:
-        p.inclination = 0.0f;
+        p.inclination = randomNear(config.inclinationMean, 3.0f * config.inclinationStdDev);
+        p.inclination = fabsf(p.inclination);
+        while (p.inclination >= 180.0f)
+        {
+            p.inclination -= 180.0f;
+        }
         p.longitudeAscendingNode = randomTwoPi();
         p.argumentOfPeriapsis = randomTwoPi();
         p.meanAnomalyAtEpoch = randomTwoPi(); // mean anomaly is a double, but I think promoting a float is good enough for initializing it here.

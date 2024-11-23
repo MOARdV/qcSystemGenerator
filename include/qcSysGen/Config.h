@@ -98,9 +98,9 @@ struct Config
     /// Each protoplanet that is spawned during system creation starts with this mass.  In units of solar mass.
     static constexpr double ProtoplanetSeedMass = 1.0e-15;
 
-    //--- The following three values were originally defined as constants in the accretion algorithm.  They
-    //--- are exposed here to allow people to tinker with what happens when they're changed.  Tweak at your
-    //--- own peril!
+    // The following three values were originally defined as constants in the accretion algorithm.  They
+    // are exposed here to allow people to tinker with what happens when they're changed.  Tweak at your
+    // own peril!
 
     /// @brief The mean eccentricity of dust in the planetary dust cloud.
     /// 
@@ -115,6 +115,8 @@ struct Config
     /// This is the initial mass that is used to accumulate dust and gas into a planet, in Solar Mass.
     double protoplanetSeedMass = ProtoplanetSeedMass;
 
+    ///--- User-adjustable variables
+
     /// @brief Allow for some variation in the density of the planets.
     ///
     /// Changing the density will change the volume, and thus change the radius of the bodies that are
@@ -124,6 +126,23 @@ struct Config
     /// 
     /// This value is clamped to the range [0.0, 0.1].
     float densityVariation = 0.025f;
+
+    /// @brief Set the mean inclination of the planets of the solar system.
+    ///
+    /// Inclination is in degrees relative to the equator of the star.  Defaults are for the Solar
+    /// System's planets.
+    /// 
+    /// This value will be normalized to the range [0, pi).
+    /// 
+    /// Resulting inclinations are also always positive in the range of [0, pi).
+    float inclinationMean = 5.57f;
+
+    /// @brief Set the standard deviation of the inclination of the planets of the solar system.
+    ///
+    /// Set this value to 0 to set all planets' inclinations to `inclinationMean`.
+    /// 
+    /// Default value is the stddev of the inclination of the planets of the Solar System.
+    float inclinationStdDev = 1.23f;
 
     //--- Switches
 
