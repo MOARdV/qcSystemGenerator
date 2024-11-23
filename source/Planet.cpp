@@ -270,54 +270,64 @@ inline float MolecularLimit(double escapeVelocity, double exosphereTemperature)
 
 //----------------------------------------------------------------------------
 /// @brief Returns a unitless opacity value used for determining the greenhouse effect
-/// on the planet
+/// on the planet.
+/// 
+/// Derived from Burrows 2006.
+/// @param minMolecularWeight The minimum molecular weight as derived from Planet::minimumMolecularWeight()
+/// @param surfacePressure Surface pressure in mb.
 /// @return Opacity.
 float Opacity(float minMolecularWeight, float surfacePressure)
 {
-    float opticalDepth = 0.0f;
+    float opticalDepth;
+    if (minMolecularWeight >= 100.0f)
+    {
+        opticalDepth = 0.0f;
+    }
+    else if (minMolecularWeight >= 45.0f)
+    {
+        opticalDepth = 0.05f;
+    }
+    else if (minMolecularWeight >= 30.0f)
+    {
+        opticalDepth = 0.15f;
+    }
+    else if(minMolecularWeight >= 20.0f)
+    {
+        opticalDepth = 1.0f;
+    }
+    else if (minMolecularWeight >= 10.0f)
+    {
+        opticalDepth = 2.34f;
+    }
+    else // (minMolecularWeight >= 0.0f)
+    {
+        opticalDepth = 3.0f;
+    }
 
-    // TODO: Can I make these functions, instead of if-else blocks?
-    if ((minMolecularWeight >= 0.0f) && (minMolecularWeight < 10.0f))
+    if (opticalDepth > 0.0f)
     {
-        opticalDepth = opticalDepth + 3.0f;
-    }
-    if ((minMolecularWeight >= 10.0f) && (minMolecularWeight < 20.0f))
-    {
-        opticalDepth = opticalDepth + 2.34f;
-    }
-    if ((minMolecularWeight >= 20.0f) && (minMolecularWeight < 30.0f))
-    {
-        opticalDepth = opticalDepth + 1.0f;
-    }
-    if ((minMolecularWeight >= 30.0f) && (minMolecularWeight < 45.0f))
-    {
-        opticalDepth = opticalDepth + 0.15f;
-    }
-    if ((minMolecularWeight >= 45.0f) && (minMolecularWeight < 100.0f))
-    {
-        opticalDepth = opticalDepth + 0.05f;
-    }
+        const float surfacePressureAtm = surfacePressure * qc::SystemGenerator::AtmPerMb;
 
-    using qc::SystemGenerator::EarthSurfacePressureMb;
-    if (surfacePressure >= (70.0f * EarthSurfacePressureMb))
-    {
-        opticalDepth = opticalDepth * 8.333f;
-    }
-    else if (surfacePressure >= (50.0f * EarthSurfacePressureMb))
-    {
-        opticalDepth = opticalDepth * 6.666f;
-    }
-    else if (surfacePressure >= (30.0f * EarthSurfacePressureMb))
-    {
-        opticalDepth = opticalDepth * 3.333f;
-    }
-    else  if (surfacePressure >= (10.0f * EarthSurfacePressureMb))
-    {
-        opticalDepth = opticalDepth * 2.0f;
-    }
-    else if (surfacePressure >= (5.0f * EarthSurfacePressureMb))
-    {
-        opticalDepth = opticalDepth * 1.5f;
+        if (surfacePressureAtm >= 70.0f)
+        {
+            opticalDepth *= 8.333f;
+        }
+        else if (surfacePressureAtm >= 50.0f)
+        {
+            opticalDepth *= 6.666f;
+        }
+        else if (surfacePressureAtm >= 30.0f)
+        {
+            opticalDepth *= 3.333f;
+        }
+        else  if (surfacePressureAtm >= 10.0f)
+        {
+            opticalDepth *= 2.0f;
+        }
+        else if (surfacePressureAtm >= 5.0f)
+        {
+            opticalDepth *= 1.5f;
+        }
     }
 
     return opticalDepth;
@@ -1137,7 +1147,7 @@ double Planet::getTotalMoonMass() const
 float Planet::greenhouseRise(float effectiveTemperature) const
 {
     const float opticalDepth = Opacity(minMolecularWeight, surfacePressure);
-    const float convectionFactor = EarthConvectionFactor * powf(surfacePressure * static_cast<float>(AtmPerMb), 0.4f);
+    const float convectionFactor = EarthConvectionFactor * powf(surfacePressure * AtmPerMb, 0.4f);
 
     return std::max(0.0f,
                     (powf(1.0f + 0.75f * opticalDepth, 0.25f) - 1.0f) * effectiveTemperature * convectionFactor);
