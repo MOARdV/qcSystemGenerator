@@ -106,7 +106,7 @@ std::string SMA(double sma)
 {
     char smaStr[16];
 
-    sprintf_s(smaStr, "%8.3lfAU  ", sma);
+    sprintf_s(smaStr, "%8.3lfAU", sma);
     return std::string(smaStr);
 }
 
@@ -156,6 +156,14 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
 
         planetInfo.append("\tSemi-major axis: ");
         planetInfo.append(SMA(pl.getSemimajorAxis()));
+        planetInfo.append(" (Pe: ").append(SMA(pl.getPeriapsis())).append(", Ap: ").append(SMA(pl.getApoapsis())).append(")");
+        puts(planetInfo.c_str());
+        planetInfo.clear();
+
+        sprintf_s(buffer, "%.3f", pl.getEccentricity());
+        planetInfo.append("\tecc: ").append(buffer).append(", inc: ");
+        sprintf_s(buffer, "%.2f*", pl.getInclination());
+        planetInfo.append(buffer);
         puts(planetInfo.c_str());
         planetInfo.clear();
 
