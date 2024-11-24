@@ -79,8 +79,9 @@ The library and example application are both released under the MIT license.
 * Burdick 1985: Accrete C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/tree/master/originals/burdick/accrete
 * Burrows 2006: stargen C-language software source code.  Copy found at https://github.com/zakski/accrete-starform-stargen/
 * Chen, et al. 2017: "Probabilistic Forecasting of the Masses and Radii of Other Worlds",  Jingjing Chen and David Kipping, The Astrophysical Journal, Vol 834, 17
-* Dole 1969: "Formation of Planetary Systems by Aggregation: A Computer Simulation", S. H. Dole, RAND paper no. P-4226, 1969
+* Dole 1969: "Formation of Planetary Systems by Aggregation: A Computer Simulation", S. H. Dole, RAND paper no. P-4226, 1969  Copy found at https://www.rand.org/pubs/papers/P4226.html#citation
 * Fogg 1985: "Extra-Solar Planetary Systems: A Microcomputer Simulation", Martyn J. Fogg,  Journal of the British Interplanetary Society, Vol 38, pp. 501-514, 1985
+* Isaacman 1977: Isaacman, R. & Sagan, C. "Computer Simulation of Planetary Accretion Dynamics: Sensitivity to Initial Conditions". Icarus, vol 31, p 510, 1977.  Copy found at https://ntrs.nasa.gov/citations/19770006045
 * Kasting 1993: "Habitable Zones around Main Sequence Stars", James F. Kasting, et al., Icarus, Volume 101, Issue 1, January 1993, Pages 108-128
 * Kothari 1936: "The Internal Constitution of Planets", Dr. D. S. Kothari,  Mon. Not. of the Royal Astronomical Society, Vol 96, pp. 833-843, 1936
 * PHL@UPR Arecibo: "Earth Similarity Index", https://phl.upr.edu/projects/earth-similarity-index-esi
