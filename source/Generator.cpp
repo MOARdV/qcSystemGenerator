@@ -322,11 +322,13 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
         return collectDust(lastMass, dustMass, gasMass, protoplanet, ++dustband);
     }
 
-    // TODO: Where do these values come from?
+    // Where do these values come from?
+    // Per acrete.cc - "See Sagan's article for insight into changing them."
+    // Per Dole 1969, they were picked because the tended to generate planetary systems similar to our Solar System.
     static constexpr double Alpha = 5.0;
     static constexpr double N = 3.0;
 
-    const double dustDensity = config.dustDensity * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
+    const double dustDensity = config.dustDensity * sqrt(stellarMass) * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
     const double tempDensity = (dustband->dustPresent) ? dustDensity : 0.0;
 
     double massDensity;
@@ -438,6 +440,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     // Store shadow values
     protoplanetZone = star.getProtoplanetZone();
     stellarLuminosity = star.getLuminosity();
+    stellarMass = star.getMass();
 
     std::vector<ProtoplanetSeed> protoplanetSeeds;
     if (!config.protoplanetSeeds.empty())

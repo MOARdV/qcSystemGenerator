@@ -252,7 +252,7 @@ class Generator
         //--- Computed / updated during accretion.
         double criticalMass; //!< Critical mass for gas retention (gas giant formation), in solar masses.  Derived from sma and e.
         double dustMass; //!< Mass of the dust component of the protoplanet, in solar masses.
-        double gasMass; //!< Mass of the gas component of the protoplanet, in solar masses.
+        double gasMass; //!< Mass of the gas component of the protoplanet, in solar masses.  "Gas" in this context is hydrogen and helium.
 
         double effectLimitScalar; //!< Reduced mass used and updated in GeneratorState::accreteDust().
         double r_inner; //!< Inner effect limit radius, in AU.
@@ -274,6 +274,8 @@ class Generator
     BandLimit_t protoplanetZone; //!< Shadow of the Star's protoplanet zone
 
     double stellarLuminosity = 0.0; //!< Shadow of the Star's luminosity
+
+    double stellarMass = 0.0; //!< Shadow of the Star's mass
 
     /// @brief The 64-bit Mersenne twister engine used to provide random numbers.
     std::mt19937_64 mt;
