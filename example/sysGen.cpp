@@ -106,7 +106,7 @@ std::string SMA(double sma)
 {
     char smaStr[16];
 
-    sprintf_s(smaStr, "%8.3lfAU", sma);
+    sprintf_s(smaStr, "%7.3lfAU", sma);
     return std::string(smaStr);
 }
 
