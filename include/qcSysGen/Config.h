@@ -87,11 +87,16 @@ struct Config
 {
     //--- Constants used to configure the generator.
 
-    /// @brief Default mean eccentricity of the nebular dust.
+    /// @brief Default mean eccentricity of the nebular dust in Dole's paper.
+    ///
+    /// The original value in Dole 1969 was 0.25.
     static constexpr double CloudEccentricity = 0.2;
 
-    ///@brief Default parameter A in Dole's paper
-    static constexpr double DustDensity = 2.0e-3;
+    ///@brief Default for parameter A in Dole's dust density function.
+    ///
+    /// This value was originally 0.002 in Dole's paper.  Later incarnations of the accretion software
+    /// changed it to 0.0015
+    static constexpr double DustDensity = 0.0015;
 
     /// @brief Default mass of a protoplanet seed.
     ///
@@ -108,6 +113,11 @@ struct Config
     double cloudEccentricity = CloudEccentricity;
 
     /// @brief Density of the planetary dust cloud.
+    ///
+    /// Smaller values than the default will lead to fewer gas giants and smaller worlds.
+    /// 
+    /// Larger values than the default may lead to super-Jovian bodies that should notionally be stars.
+    /// However, this software isn't intended to simulate multi-star systems.
     double dustDensity = DustDensity;
 
     /// @brief The mass of a protoplanet seed.

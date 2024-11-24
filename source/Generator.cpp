@@ -325,7 +325,12 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
     // Where do these values come from?
     // Per acrete.cc - "See Sagan's article for insight into changing them."
     // Per Dole 1969, they were picked because the tended to generate planetary systems similar to our Solar System.
+
+    // Alpha moves where the highest density of the dust tends to be.  5.0 is roughly 5.8AU for a G2V.
+    // Larger values will tend to make outer planets smaller.  The equation is extremely sensitive to
+    // these values, and degenerate conditions are common if they change too much.
     static constexpr double Alpha = 5.0;
+    // N is the denominator of the exponent in Dole 1969's dust density equation.
     static constexpr double N = 3.0;
 
     const double dustDensity = config.dustDensity * sqrt(stellarMass) * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
