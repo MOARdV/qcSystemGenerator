@@ -1195,6 +1195,7 @@ void Planet::iterateSurfaceConditions(Generator& generator, const EvaluationStat
     if (!converged && generator.getVerbose())
     {
         printf(" ... !!! Failed to converge planetary conditions in %d iterations; last delta was %f\n", MaxConvergenceIterations, fabsf(previousTemperature - meanSurfaceTemperature));
+        assert(converged);
     }
 #endif
 }
