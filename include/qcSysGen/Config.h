@@ -87,38 +87,10 @@ struct Config
 {
     //--- Constants used to configure the generator.
 
-    /// @brief Default mean eccentricity of the nebular dust in Dole's paper.
-    ///
-    /// The original value in Dole 1969 was 0.25.
-    static constexpr double CloudEccentricity = 0.2;
-
-    ///@brief Default for parameter A in Dole's dust density function.
-    ///
-    /// This value was originally 0.002 in Dole's paper.  Later incarnations of the accretion software
-    /// changed it to 0.0015
-    static constexpr double DustDensity = 0.0015;
-
     /// @brief Default mass of a protoplanet seed.
     ///
     /// Each protoplanet that is spawned during system creation starts with this mass.  In units of solar mass.
     static constexpr double ProtoplanetSeedMass = 1.0e-15;
-
-    // The following three values were originally defined as constants in the accretion algorithm.  They
-    // are exposed here to allow people to tinker with what happens when they're changed.  Tweak at your
-    // own peril!
-
-    /// @brief The mean eccentricity of dust in the planetary dust cloud.
-    /// 
-    /// This value will be clamped to [0.0, 0.9].  I don't recommend changing this value substantially.
-    double cloudEccentricity = CloudEccentricity;
-
-    /// @brief Density of the planetary dust cloud.
-    ///
-    /// Smaller values than the default will lead to fewer gas giants and smaller worlds.
-    /// 
-    /// Larger values than the default may lead to super-Jovian bodies that should notionally be stars.
-    /// However, this software isn't intended to simulate multi-star systems.
-    double dustDensity = DustDensity;
 
     /// @brief The mass of a protoplanet seed.
     ///
@@ -142,9 +114,10 @@ struct Config
     /// Inclination is in degrees relative to the equator of the star.  Defaults are for the Solar
     /// System's planets.
     /// 
-    /// This value will be normalized to the range [0, pi).
+    /// This value will be normalized to the range [0, 180).
     /// 
-    /// Resulting inclinations are also always positive in the range of [0, pi).
+    /// Resulting inclinations are also always positive in the range of [0, 180).
+    /// @todo Convert to radians for consistency.
     float inclinationMean = 5.57f;
 
     /// @brief Set the standard deviation of the inclination of the planets of the solar system.
@@ -152,6 +125,7 @@ struct Config
     /// Set this value to 0 to set all planets' inclinations to `inclinationMean`.
     /// 
     /// Default value is the stddev of the inclination of the planets of the Solar System.
+    /// @todo Convert to radians for consistency.
     float inclinationStdDev = 1.23f;
 
     //--- Switches

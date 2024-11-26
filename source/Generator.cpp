@@ -45,9 +45,13 @@ double BodeSequence(int n, double A, double B, float alpha, float beta)
 
 //----------------------------------------------------------------------------
 // Returns the inner and outer effect limit for a given protoplanet.
-std::pair<double, double> GetEffectLimits(double sma, double e, double scalar, double cloudEccentricity)
+std::pair<double, double> GetEffectLimits(double sma, double e, double scalar)
 {
-    return std::make_pair(sma * (1.0 - e) * (1.0 - scalar) / (1.0 + cloudEccentricity), sma * (1.0 + e) * (1.0 + scalar) / (1.0 - cloudEccentricity));
+    /// Mean eccentricity of the nebular dust in Dole 1969.
+    /// The original value was 0.25, but it looks like the various versions afterwards used 0.2 instead.
+    static constexpr double CloudEccentricity = 0.2;
+
+    return std::make_pair(sma * (1.0 - e) * (1.0 - scalar) / (1.0 + CloudEccentricity), sma * (1.0 + e) * (1.0 + scalar) / (1.0 - CloudEccentricity));
 }
 
 }
@@ -85,7 +89,7 @@ void Generator::accreteDust(Protoplanet& protoplanet)
         oldMass = newMass;
 
         protoplanet.effectLimitScalar = pow(oldMass / (1.0 + oldMass), (1.0 / 4.0));
-        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar, config.cloudEccentricity);
+        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar);
         protoplanet.r_inner = effectLimits.first;
         protoplanet.r_outer = effectLimits.second;
 
@@ -326,14 +330,20 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
     // Per acrete.cc - "See Sagan's article for insight into changing them."
     // Per Dole 1969, they were picked because the tended to generate planetary systems similar to our Solar System.
 
+    // A is the density of the dust cloud in solar masses per cubic AU.
+    //
+    // Dole 1969 used 0.0015, most of the later implementations use 0.002.
+    static constexpr double A = 0.0015;
+
     // Alpha moves where the highest density of the dust tends to be.  5.0 is roughly 5.8AU for a G2V.
     // Larger values will tend to make outer planets smaller.  The equation is extremely sensitive to
     // these values, and degenerate conditions are common if they change too much.
     static constexpr double Alpha = 5.0;
+
     // N is the denominator of the exponent in Dole 1969's dust density equation.
     static constexpr double N = 3.0;
 
-    const double dustDensity = config.dustDensity * sqrt(stellarMass) * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
+    const double dustDensity = A * sqrt(stellarMass) * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
     const double tempDensity = (dustband->dustPresent) ? dustDensity : 0.0;
 
     double massDensity;
@@ -394,8 +404,6 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     config = config_;
 
     // Sanity clamps:
-    config.cloudEccentricity = Clamp(config.cloudEccentricity, 0.0, 0.9);
-    config.densityVariation = Clamp(config.densityVariation, 0.0f, 0.1f);
     config.inclinationMean = fabsf(config.inclinationMean);
     while (config.inclinationMean >= 180.0f)
     {
