@@ -261,43 +261,18 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
             planetInfo.clear();
         }
     }
+    else // AsteroidBelt
+    {
+        planetInfo.append("\tSemi-major axis: ");
+        planetInfo.append(SMA(pl.getSemimajorAxis()));
+        puts(planetInfo.c_str());
+        planetInfo.clear();
+    }
 }
 
 //----------------------------------------------------------------------------
-int main(int, char**)
+void ShowResults(const SolarSystem& ss, const Generator& gen, bool showSummary, bool showDetails)
 {
-    Generator gen;
-    //gen.seed(12345);
-    //gen.seed(0x7d9a6763eae90ecbull);
-
-    uint64_t seed = time(nullptr);
-    seed = 6364136223846793005ULL * seed + 1ull;
-    uint32_t tm = static_cast<uint32_t>(seed >> 32u);
-    tm ^= tm >> 11;
-    tm ^= tm << 7 & 0x9D2C5680;
-    tm ^= tm << 15 & 0xEFC60000;
-    tm ^= tm >> 18;
-    gen.seed((seed & 0xffffffffull) | (static_cast<uint64_t>(tm) << 32ull));
-
-
-    Star sun;
-    sun.setType(StarClassification::G_V, 2);
-    sun.setName("Bob");
-    sun.evaluate(&gen);
-
-    SolarSystem ss;
-    ss.setName("Bob System");
-    ss.add(sun);
-
-    Config cfg;
-    cfg.generateStar = true;
-    cfg.generateBodeSeeds = true;
-    //cfg.verboseLogging = true;
-    gen.generate(ss, cfg);
-
-    const bool showSummary = false;
-    const bool showDetails = true;
-
     char starClass[4];
     ss.getStar().getStellarClass(starClass, sizeof(starClass));
 
@@ -395,6 +370,45 @@ int main(int, char**)
             }*/
         }
     }
+}
+
+//----------------------------------------------------------------------------
+int main(int, char**)
+{
+    Generator gen;
+    //gen.seed(12345);
+    //gen.seed(0x7d9a6763eae90ecbull);
+
+    uint64_t timeSeed = time(nullptr);
+    timeSeed = 6364136223846793005ULL * timeSeed + 1ull;
+    uint32_t tm = static_cast<uint32_t>(timeSeed >> 32u);
+    tm ^= tm >> 11;
+    tm ^= tm << 7 & 0x9D2C5680;
+    tm ^= tm << 15 & 0xEFC60000;
+    tm ^= tm >> 18;
+    const uint64_t seed = (timeSeed & 0xffffffffull) | (static_cast<uint64_t>(tm) << 32ull);
+    gen.seed(seed);
+
+
+    Star sun;
+    sun.setType(StarClassification::G_V, 2);
+    sun.setName("Bob");
+    sun.evaluate(&gen);
+
+    SolarSystem ss;
+    ss.setName("Bob System");
+    ss.add(sun);
+
+    Config cfg;
+    cfg.generateStar = true;
+    cfg.generateBodeSeeds = true;
+    //cfg.verboseLogging = true;
+    gen.generate(ss, cfg);
+
+    const bool showSummary = false;
+    const bool showDetails = true;
+
+    ShowResults(ss, gen, showSummary, showDetails);
 
     return 0;
 }

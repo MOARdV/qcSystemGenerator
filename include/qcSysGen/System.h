@@ -89,6 +89,7 @@ class SolarSystem
     /// @brief Access the planets of this solar system.
     /// @return The planets.
     PlanetVector& getPlanets() { return planet; }
+    const PlanetVector& getPlanets() const { return planet; }
 
     /// @brief Access the central star.
     /// 

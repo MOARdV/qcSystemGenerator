@@ -99,6 +99,9 @@ class Generator
     /// the Star will also be replaced.
     /// 
     /// After this method has run, the SolarSystem will have been fully evaluated.
+    /// 
+    /// This generator uses the original accretion model, where each protoplanet is generated
+    /// in sequence and dust is iteratively collected until the protoplanet has swept its lane.
     /// @param system The SolarSystem that will contain the results.
     /// @param config_ The Config that configures the generator.
     void generate(SolarSystem& system, const Config& config_);
@@ -271,11 +274,11 @@ class Generator
 
     Config config; //!< Copy of the config values.
 
-    BandLimit_t protoplanetZone; //!< Shadow of the Star's protoplanet zone
+    BandLimit_t protoplanetZone; //!< Shadow copy of the Star's protoplanet zone
 
-    double stellarLuminosity = 0.0; //!< Shadow of the Star's luminosity
+    double stellarLuminosity = 0.0; //!< Shadow copy of the Star's luminosity
 
-    double stellarMass = 0.0; //!< Shadow of the Star's mass
+    double stellarMass = 0.0; //!< Shadow copy of the Star's mass
 
     /// @brief The 64-bit Mersenne twister engine used to provide random numbers.
     std::mt19937_64 mt;
@@ -289,11 +292,21 @@ class Generator
     /// @brief Count of how many protoplanets contributed to the solar system.
     uint32_t protoPlanetCount = 0;
 
+    // Accrete dust.  This implementation grows the protoplanet until it's swept
+    // all available dust.
     void accreteDust(Protoplanet& protoplanet);
 
     void coalescePlanetisimals(Protoplanet& protoplanet);
 
     double collectDust(double lastMass, double& dustMass, double& gasMass, Protoplanet& protoplanet, AvailableDust::iterator dustband);
+
+    // Generate a sequence of protoplanet seeds based on Blagg's modification of Bode's Law.
+    // The first seed in the returned vector is always closest to the ideal habitable zone.
+    // The remainder of the seeds are randomly sorted to allow for more variation in the results.
+    void generateBodeSeeds(std::vector<ProtoplanetSeed>& protoplanetSeeds, const Star& star);
+
+    // Generate a random star for the solar system.
+    void generateStar(SolarSystem& system);
 
     void updateDustLanes(const Protoplanet& protoplanet);
 };

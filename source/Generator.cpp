@@ -419,22 +419,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
 #endif
     if (config.generateStar)
     {
-        const float starMass = randomUniform(0.59f, 1.30f);
-        const StarType_t type = GetStarType(starMass);
-
-        Star star(type.first, type.second);
-        star.setName(system.star.getName());
-        star.evaluate(this);
-
-        system.add(star);
-#ifdef ALLOW_DEBUG_PRINTF
-        if (config.verboseLogging)
-        {
-            char st[6];
-            star.getStellarClass(st, sizeof(st));
-            printf("Generated random star %s\n", st);
-        }
-#endif
+        generateStar(system);
     }
     else
     {
@@ -477,112 +462,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     }
     else if (config.generateBodeSeeds)
     {
-#ifdef ALLOW_DEBUG_PRINTF
-        if (config.verboseLogging)
-        {
-            printf("Generating Bode seeds:\n");
-        }
-#endif
-
-        // The Blagg formulation of Bode's Law is:
-        // SMA (AU) = A * (B + f(a + nb)) * 1.7275 ^ n
-        // where:
-        // f(theta) = 0.249 + 0.86 * ( cos(theta)/(3 - cos(2 * theta)) + 1/(6 - 4*cos(2 * (theta - pi/6))) )
-        // A = 0.4162
-        // B = 2.025
-        // a =  84.9*
-        // b =  56.6*
-        // n = integer (-2, -1, 0, 1, 2, ...)
-        //
-        // This formulation is pretty accurate for the solar system - within 5% on all of the major planets except
-        // Neptune (which is 5.6%).  It also is reasonable for the moons of the gas giants with tweaking of the constants.
-        //
-        // For this simulation's sake, we'll vary A and B within a small range (+/- 5%), with additional scaling
-        // of A based on the ideal ecosphere of the central star.  This way, we can more-or-less guarantee that the first
-        // protoplanet (n = 0) is within or close to the ecosphere.
-
-        // A in the Blagg formulation, initially 0.4162.
-        // We scale that value by the ecosphere radius, and then apply a random
-        // Gaussian distribution within a few percent of that result.
-        const double A = 0.4162 * star.getEcosphere() * randomNear(1.0f, 0.04f);
-
-        // B in the Blagg formulation, initially 2.025.
-        const double B = 2.025 * randomNear(1.0f, 0.04f);
-
-        // alpha in the Blagg formulation.  For our solar system, it's 84.9 degrees (~1.4818).
-        // We'll use a completely random value here.
-        const float a = randomTwoPi();
-
-        // beta in the Blagg formulation.  For our solar system, it's 56.6 degrees (~0.9879).
-        const float b = 0.9879f;
-
-        // Generate the seeds:
-        ProtoplanetSeed s;
-
-        s.semiMajorAxis = BodeSequence(0, A, B, a, b);
-        s.eccentricity = randomEccentricity();
-
-        protoplanetSeeds.emplace_back(s);
-#ifdef ALLOW_DEBUG_PRINTF
-        if (config.verboseLogging)
-        {
-            printf(" ... n =  0 - SMA = %.3lf, ecc = %.3f\n", s.semiMajorAxis, s.eccentricity);
-        }
-#endif
-
-        int32_t n = 1;
-        bool added = false;
-        do
-        {
-            added = false;
-            s.semiMajorAxis = BodeSequence(-n, A, B, a, b);
-            s.eccentricity = randomEccentricity();
-            if (s.semiMajorAxis >= protoplanetZone.first)
-            {
-                protoplanetSeeds.emplace_back(s);
-                added = true;
-#ifdef ALLOW_DEBUG_PRINTF
-                if (config.verboseLogging)
-                {
-                    printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", -n, s.semiMajorAxis, s.eccentricity);
-                }
-#endif
-            }
-
-            s.semiMajorAxis = BodeSequence(n, A, B, a, b);
-            s.eccentricity = randomEccentricity();
-            if (s.semiMajorAxis <= protoplanetZone.second)
-            {
-                protoplanetSeeds.emplace_back(s);
-                added = true;
-#ifdef ALLOW_DEBUG_PRINTF
-                if (config.verboseLogging)
-                {
-                    printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", n, s.semiMajorAxis, s.eccentricity);
-                }
-#endif
-            }
-
-            ++n;
-        } while (added);
-
-        // Reorder them?
-        size_t i = 1u;
-        while (i < protoplanetSeeds.size() - 1u)
-        {
-            const size_t otherIdx = randomUniformInt(1ull, protoplanetSeeds.size() - 1u);
-            if (i != otherIdx)
-            {
-#ifdef ALLOW_DEBUG_PRINTF
-                if (config.verboseLogging)
-                {
-                    printf(" ... Swapping [%Iu] and [%Iu]\n", i, otherIdx);
-                }
-#endif
-                std::swap(protoplanetSeeds[i], protoplanetSeeds[otherIdx]);
-            }
-            ++i;
-        }
+        generateBodeSeeds(protoplanetSeeds, star);
     }
 
     // Initialize dust bands
@@ -662,6 +542,142 @@ void Generator::generate(SolarSystem& system, const Config& config_)
     }
 
     system.evaluate(*this);
+}
+
+//----------------------------------------------------------------------------
+void Generator::generateBodeSeeds(std::vector<ProtoplanetSeed>& protoplanetSeeds, const Star& star)
+{
+#ifdef ALLOW_DEBUG_PRINTF
+    if (config.verboseLogging)
+    {
+        printf("Generating Bode seeds:\n");
+    }
+#endif
+
+    // The Blagg formulation of Bode's Law is:
+    // SMA (AU) = A * (B + f(a + nb)) * 1.7275 ^ n
+    // where:
+    // f(theta) = 0.249 + 0.86 * ( cos(theta)/(3 - cos(2 * theta)) + 1/(6 - 4*cos(2 * (theta - pi/6))) )
+    // A = 0.4162
+    // B = 2.025
+    // a =  84.9*
+    // b =  56.6*
+    // n = integer (-2, -1, 0, 1, 2, ...)
+    //
+    // This formulation is pretty accurate for the solar system - within 5% on all of the major planets except
+    // Neptune (which is 5.6%).  It also is reasonable for the moons of the gas giants with tweaking of the constants.
+    //
+    // For this simulation's sake, we'll vary A and B within a small range (+/- 5%), with additional scaling
+    // of A based on the ideal ecosphere of the central star.  This way, we can more-or-less guarantee that the first
+    // protoplanet (n = 0) is within or close to the ecosphere.
+
+    // A in the Blagg formulation, initially 0.4162.
+    // We scale that value by the ecosphere radius, and then apply a random
+    // Gaussian distribution within a few percent of that result.
+    const double A = 0.4162 * star.getEcosphere() * randomNear(1.0f, 0.04f);
+
+    // B in the Blagg formulation, initially 2.025.
+    const double B = 2.025 * randomNear(1.0f, 0.04f);
+
+    // alpha in the Blagg formulation.  For our solar system, it's 84.9 degrees (~1.4818).
+    // We'll use a completely random value here.
+    const float a = randomTwoPi();
+
+    // beta in the Blagg formulation.  For our solar system, it's 56.6 degrees (~0.9879).
+    const float b = 0.9879f;
+
+    // Generate the seeds:
+    ProtoplanetSeed s;
+
+    s.semiMajorAxis = BodeSequence(0, A, B, a, b);
+    s.eccentricity = randomEccentricity();
+
+    protoplanetSeeds.emplace_back(s);
+#ifdef ALLOW_DEBUG_PRINTF
+    if (config.verboseLogging)
+    {
+        printf(" ... n =  0 - SMA = %.3lf, ecc = %.3f\n", s.semiMajorAxis, s.eccentricity);
+    }
+#endif
+
+    int32_t n = 1;
+    bool added = false;
+    do
+    {
+        added = false;
+        s.semiMajorAxis = BodeSequence(-n, A, B, a, b);
+        s.eccentricity = randomEccentricity();
+        if (s.semiMajorAxis >= protoplanetZone.first)
+        {
+            protoplanetSeeds.emplace_back(s);
+            added = true;
+#ifdef ALLOW_DEBUG_PRINTF
+            if (config.verboseLogging)
+            {
+                printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", -n, s.semiMajorAxis, s.eccentricity);
+            }
+#endif
+        }
+
+        s.semiMajorAxis = BodeSequence(n, A, B, a, b);
+        s.eccentricity = randomEccentricity();
+        if (s.semiMajorAxis <= protoplanetZone.second)
+        {
+            protoplanetSeeds.emplace_back(s);
+            added = true;
+#ifdef ALLOW_DEBUG_PRINTF
+            if (config.verboseLogging)
+            {
+                printf(" ... n = %2d - SMA = %.3lf, ecc = %.3f\n", n, s.semiMajorAxis, s.eccentricity);
+            }
+#endif
+        }
+
+        ++n;
+    } while (added);
+
+    // Reorder them?
+    size_t i = 1u;
+    while (i < protoplanetSeeds.size() - 1u)
+    {
+        const size_t otherIdx = randomUniformInt(1ull, protoplanetSeeds.size() - 1u);
+        if (i != otherIdx)
+        {
+#ifdef ALLOW_DEBUG_PRINTF
+            if (config.verboseLogging)
+            {
+                printf(" ... Swapping [%Iu] and [%Iu]\n", i, otherIdx);
+            }
+#endif
+            std::swap(protoplanetSeeds[i], protoplanetSeeds[otherIdx]);
+        }
+        ++i;
+    }
+}
+
+//----------------------------------------------------------------------------
+void Generator::generateStar(SolarSystem& system)
+{
+    // Range of stellar masses that provide the best results.
+    static constexpr float MinStellarMass = 0.59f;
+    static constexpr float MaxStellarMass = 1.30f;
+
+    const float starMass = randomUniform(MinStellarMass, MaxStellarMass);
+    const StarType_t type = GetStarType(starMass);
+
+    Star star(type.first, type.second);
+    star.setName(system.star.getName());
+    star.evaluate(this);
+
+    system.add(star);
+#ifdef ALLOW_DEBUG_PRINTF
+    if (config.verboseLogging)
+    {
+        char st[6];
+        star.getStellarClass(st, sizeof(st));
+        printf("Generated random star %s\n", st);
+    }
+#endif
 }
 
 //----------------------------------------------------------------------------
