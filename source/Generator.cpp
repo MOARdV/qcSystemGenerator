@@ -65,12 +65,12 @@ namespace SystemGenerator
 //----------------------------------------------------------------------------
 void Generator::accreteDust(Protoplanet& protoplanet)
 {
-    // Don't use dustMass - if this a collision re-evaluation, it may fail to keep the protoplanet if
-    // there's no dust left.
-    const double initialMass = config.protoplanetSeedMass;
-
     double oldMass;
-    double newMass = protoplanet.mass;
+    // This is essentially how the accrete algorithm was written, but ...
+    // when reconciling the effects of two protoplanets colliding, this
+    // is going to be net mass, which is much larger than it is when
+    // processing a new protoplanet.
+    double addedMass = protoplanet.mass;
 
     protoplanet.criticalMass = CriticalLimit(protoplanet.sma, protoplanet.eccentricity, stellarLuminosity);
 
@@ -81,28 +81,35 @@ void Generator::accreteDust(Protoplanet& protoplanet)
     }
 #endif
 
-    double dustMass, gasMass;
+    // Amount of dust and gas collected (added to the protoplanet afterwards)
+    double addedDustMass, addedGasMass;
     // Accumulate dust.  At the end of this loop, newMass is the total mass collected by the
     // protoplanet, and dustMass and gasMass are the dust and gas components.
     do
     {
-        oldMass = newMass;
+        oldMass = addedMass;
 
         protoplanet.effectLimitScalar = pow(oldMass / (1.0 + oldMass), (1.0 / 4.0));
         const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar);
         protoplanet.r_inner = effectLimits.first;
         protoplanet.r_outer = effectLimits.second;
 
-        newMass = collectDust(oldMass, dustMass, gasMass, protoplanet, availableDust.begin());
-    } while (newMass > 0.0 && abs(newMass - oldMass) >= 0.0001 * oldMass);
+        addedMass = collectDust(oldMass, addedDustMass, addedGasMass, protoplanet, availableDust.begin());
+    } while (addedMass > 0.0 && abs(addedMass - oldMass) >= 0.0001 * oldMass);
+    assert(addedMass == 0.0 || addedMass >= oldMass);
+    
+    // If any mass wass was consumed, add it to the protoplanet and update the dust lanes.
+    if (addedMass > 0.0)
+    {
+        protoplanet.mass += addedMass;
+        protoplanet.dustMass += addedDustMass;
+        protoplanet.gasMass += addedGasMass;
 
-    protoplanet.mass += newMass;
-    protoplanet.dustMass += dustMass;
-    protoplanet.gasMass += gasMass;
+        updateDustLanes(protoplanet);
+    }
 
-    updateDustLanes(protoplanet);
-
-    if (protoplanet.mass > initialMass)
+    // If the protoplanet is heavier than the initial seed mass, let's try to turn it into a planet.
+    if (protoplanet.mass > config.protoplanetSeedMass)
     {
 #ifdef ALLOW_DEBUG_PRINTF
         if (config.verboseLogging && !availableDust.empty())
@@ -309,10 +316,10 @@ void Generator::coalescePlanetisimals(Protoplanet& protoplanet)
 }
 
 //----------------------------------------------------------------------------
-double Generator::collectDust(double lastMass, double& dustMass, double& gasMass, Protoplanet& protoplanet, Generator::AvailableDust::iterator dustband)
+double Generator::collectDust(double lastMass, double& additionalDustMass, double& additionalGasMass, const Protoplanet& protoplanet, Generator::AvailableDust::iterator dustband)
 {
-    dustMass = 0.0;
-    gasMass = 0.0;
+    additionalDustMass = 0.0;
+    additionalGasMass = 0.0;
 
     if (dustband == availableDust.end())
     {
@@ -323,7 +330,7 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
     if ((dustband->outerEdge <= protoplanet.r_inner) || (dustband->innerEdge >= protoplanet.r_outer))
     {
         // Skip this dustband - this dustband is outside the range of the effect radius.
-        return collectDust(lastMass, dustMass, gasMass, protoplanet, ++dustband);
+        return collectDust(lastMass, additionalDustMass, additionalGasMass, protoplanet, ++dustband);
     }
 
     // Where do these values come from?
@@ -333,14 +340,16 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
     // A is the density of the dust cloud in solar masses per cubic AU.
     //
     // Dole 1969 used 0.0015, most of the later implementations use 0.002.
-    static constexpr double A = 0.0015;
+    static constexpr double A = 0.0020;
 
-    // Alpha moves where the highest density of the dust tends to be.  5.0 is roughly 5.8AU for a G2V.
-    // Larger values will tend to make outer planets smaller.  The equation is extremely sensitive to
-    // these values, and degenerate conditions are common if they change too much.
+    // Alpha moves where the highest density of the dust tends to be.  Per Issacman 1977,
+    // 5.0 is roughly 5.8AU (Jupiter) for a G2V.  Larger values will tend to make outer
+    // planets smaller.  The equation is extremely sensitive to these values,
+    // and degenerate conditions are common if they change too much.
     static constexpr double Alpha = 5.0;
 
-    // N is the denominator of the exponent in Dole 1969's dust density equation.
+    // N is the denominator of the exponent in Dole 1969's dust density equation.  Issacman 1977
+    // varied it to see how it affected the outcome.
     static constexpr double N = 3.0;
 
     const double dustDensity = A * sqrt(stellarMass) * exp(-Alpha * pow(protoplanet.sma, 1.0 / N));
@@ -379,17 +388,17 @@ double Generator::collectDust(double lastMass, double& dustMass, double& gasMass
 
     const double newMass = volume * massDensity;
 
-    gasMass = volume * gasDensity;
+    additionalGasMass = volume * gasDensity;
 
-    dustMass = newMass - gasMass;
-    assert(dustMass >= 0.0);
+    additionalDustMass = newMass - additionalGasMass;
+    assert(additionalDustMass >= 0.0);
 
     // Recurse to the next dust band.
     double nextDustMass, nextGasMass;
     const double nextMass = collectDust(lastMass, nextDustMass, nextGasMass, protoplanet, ++dustband);
 
-    dustMass += nextDustMass;
-    gasMass += nextGasMass;
+    additionalDustMass += nextDustMass;
+    additionalGasMass += nextGasMass;
 
     return newMass + nextMass;
 }

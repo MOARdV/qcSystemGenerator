@@ -293,12 +293,24 @@ class Generator
     uint32_t protoPlanetCount = 0;
 
     // Accrete dust.  This implementation grows the protoplanet until it's swept
-    // all available dust.
+    // all available dust.  Once the dust has been accreted, this method calls
+    // coalescePlanetisimals() to attempt to convert the protoplanet into a planet.
     void accreteDust(Protoplanet& protoplanet);
 
+    // Attempt to convert the protoplanet into a planet.  First, each existing planet is tested
+    // to see if the protoplanet may have collided with it.  If not, a new planet is formed.
+    // If there was a collision, a new protoplanet is formed using post-colliision mass and
+    // orbital characteristics, and it goes through collectDust() to sweep its neighborhood.
     void coalescePlanetisimals(Protoplanet& protoplanet);
 
-    double collectDust(double lastMass, double& dustMass, double& gasMass, Protoplanet& protoplanet, AvailableDust::iterator dustband);
+    /// @brief Execute one iteration to collect dust from the dustband.  Recurse to the next dust band to continue collecting.
+    /// @param lastMass The amount of dust added in the previous step.
+    /// @param additionalDustMass The amount of dust to add to the body.
+    /// @param additionalGasMass The amount of gas to add to the body.
+    /// @param protoplanet The protoplanet in question
+    /// @param dustband The dustband to ocllect dust from
+    /// @return Net increase in mass (dust mass + gas mass)
+    double collectDust(double lastMass, double& additionalDustMass, double& additionalGasMass, const Protoplanet& protoplanet, AvailableDust::iterator dustband);
 
     // Generate a sequence of protoplanet seeds based on Blagg's modification of Bode's Law.
     // The first seed in the returned vector is always closest to the ideal habitable zone.
@@ -308,6 +320,7 @@ class Generator
     // Generate a random star for the solar system.
     void generateStar(SolarSystem& system);
 
+    // Clear dust and gas (as appropriate) from the availableDust list.
     void updateDustLanes(const Protoplanet& protoplanet);
 };
 
