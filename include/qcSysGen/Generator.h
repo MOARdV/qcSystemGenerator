@@ -274,18 +274,16 @@ class Generator
         double criticalMass; //!< Critical mass for gas retention (gas giant formation), in solar masses.  Derived from sma and e.
         double dustMass; //!< Mass of the dust component of the protoplanet, in solar masses.
         double gasMass; //!< Mass of the gas component of the protoplanet, in solar masses.  "Gas" in this context is hydrogen and helium.
-        double previousAddedMass; //!< Mass that was added during the previous accretion step.
 
-        double effectLimitScalar; //!< Reduced mass used and updated in GeneratorState::accreteDust().
         double r_inner; //!< Inner effect limit radius, in AU.
         double r_outer; //!< Outer effect limit radius, in AU.
         
-        bool active; //!< Is this protoplanet still actively accruing?
+        bool active; //!< Is this protoplanet still actively accruing?  Used for parallel accretion.
 
         Protoplanet() :sma(0.0), eccentricity(0.0f), mass(0.0),
             criticalMass(0.0), dustMass(0.0), gasMass(0.0),
-            previousAddedMass(0.0), active(true),
-            effectLimitScalar(0.0), r_inner(0.0), r_outer(0.0)
+            active(true),
+            r_inner(0.0), r_outer(0.0)
         { }
     };
 

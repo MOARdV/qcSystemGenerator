@@ -44,22 +44,24 @@ double BodeSequence(int n, double A, double B, float alpha, float beta)
 }
 
 //----------------------------------------------------------------------------
+// "reduced_mass" in the original accrete implementation.  Provides a number
+// in the range [0, 1) based on the provided mass (in Solar masses).
+inline double EffectLimitScalar(double mass)
+{
+    return pow(mass / (1.0 + mass), (1.0 / 4.0));
+}
+
+//----------------------------------------------------------------------------
 // Returns the inner and outer effect limit for a given protoplanet.
-std::pair<double, double> GetEffectLimits(double sma, double e, double scalar)
+std::pair<double, double> GetEffectLimits(double sma, double e, double mass)
 {
     /// Mean eccentricity of the nebular dust in Dole 1969.
     /// The original value was 0.25, but it looks like the various versions afterwards used 0.2 instead.
     static constexpr double CloudEccentricity = 0.2;
 
-    return std::make_pair(sma * (1.0 - e) * (1.0 - scalar) / (1.0 + CloudEccentricity), sma * (1.0 + e) * (1.0 + scalar) / (1.0 - CloudEccentricity));
-}
+    const double scalar = EffectLimitScalar(mass);
 
-//----------------------------------------------------------------------------
-// "reduced_mass" in the original accrete implementation.  Provides a number
-// in the range [0, 1) based on the incoming mass.
-inline double EffectLimitScalar(double mass)
-{
-    return pow(mass / (1.0 + mass), (1.0 / 4.0));
+    return std::make_pair(sma * (1.0 - e) * (1.0 - scalar) / (1.0 + CloudEccentricity), sma * (1.0 + e) * (1.0 + scalar) / (1.0 - CloudEccentricity));
 }
 
 }
@@ -73,13 +75,6 @@ namespace SystemGenerator
 //----------------------------------------------------------------------------
 void Generator::accreteDust(Protoplanet& protoplanet)
 {
-    //double oldMass;
-    // This is essentially how the accrete algorithm was written, but ...
-    // when reconciling the effects of two protoplanets colliding, this
-    // is going to be net mass, which is much larger than it is when
-    // processing a new protoplanet.
-    double addedMass = protoplanet.previousAddedMass;
-
     protoplanet.criticalMass = CriticalLimit(protoplanet.sma, protoplanet.eccentricity, stellarLuminosity);
 
 #ifdef ALLOW_DEBUG_PRINTF
@@ -91,28 +86,35 @@ void Generator::accreteDust(Protoplanet& protoplanet)
 
     // Amount of dust and gas collected (added to the protoplanet afterwards)
     double addedDustMass, addedGasMass;
-    // Accumulate dust.  At the end of this loop, newMass is the total mass collected by the
-    // protoplanet, and dustMass and gasMass are the dust and gas components.
+    // Total mass collected (addedDustMass + addedGasMass)
+    double addedMass = 0.0;
+    
+    double oldMass;
+
+    // Accumulate dust.  When we exit this loop, addedMass is the total mass collected by the
+    // protoplanet, and addedDustMass and addedGasMass are the additional dust and gas masses.
     do
     {
-        protoplanet.previousAddedMass = addedMass;
-
-        protoplanet.effectLimitScalar = EffectLimitScalar(protoplanet.previousAddedMass);
-        //protoplanet.effectLimitScalar = pow(oldMass / (1.0 + oldMass), (1.0 / 4.0));
-        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar);
+        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.mass + addedMass);
         protoplanet.r_inner = effectLimits.first;
         protoplanet.r_outer = effectLimits.second;
 
-        addedMass = collectDust(protoplanet.previousAddedMass, addedDustMass, addedGasMass, protoplanet, availableDust.begin());
-    } while (addedMass > 0.0 && abs(addedMass - protoplanet.previousAddedMass) >= 0.0001 * protoplanet.previousAddedMass);
-    assert(addedMass == 0.0 || addedMass >= protoplanet.previousAddedMass);
+        oldMass = addedMass;
+        addedMass = collectDust(protoplanet.mass + addedMass, addedDustMass, addedGasMass, protoplanet, availableDust.begin());
+
+        // Keep trying to collect dust until we're not adding much per iteration.
+    } while (addedMass > 0.0 && (addedMass - oldMass) >= 0.0001 * oldMass);
     
-    // If any mass wass was consumed, add it to the protoplanet and update the dust lanes.
+    // If any mass wass was added, add it to the protoplanet and update the dust lanes.
     if (addedMass > 0.0)
     {
         protoplanet.mass += addedMass;
         protoplanet.dustMass += addedDustMass;
         protoplanet.gasMass += addedGasMass;
+        
+        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.mass);
+        protoplanet.r_inner = effectLimits.first;
+        protoplanet.r_outer = effectLimits.second;
 
         updateDustLanes(protoplanet);
     }
@@ -167,13 +169,6 @@ void Generator::accreteDust(Protoplanet& protoplanet)
 //----------------------------------------------------------------------------
 bool Generator::accreteDust2(Protoplanet& protoplanet)
 {
-    //double oldMass;
-    // This is essentially how the accrete algorithm was written, but ...
-    // when reconciling the effects of two protoplanets colliding, this
-    // is going to be net mass, which is much larger than it is when
-    // processing a new protoplanet.
-    double addedMass = protoplanet.previousAddedMass;
-
     protoplanet.criticalMass = CriticalLimit(protoplanet.sma, protoplanet.eccentricity, stellarLuminosity);
 
 #ifdef ALLOW_DEBUG_PRINTF
@@ -183,30 +178,25 @@ bool Generator::accreteDust2(Protoplanet& protoplanet)
     }
 #endif
 
-    // Amount of dust and gas collected (added to the protoplanet afterwards)
+    const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.mass);
+    protoplanet.r_inner = effectLimits.first;
+    protoplanet.r_outer = effectLimits.second;
+
+    // Amount of dust and gas collected
     double addedDustMass, addedGasMass;
-    // Accumulate dust.  At the end of this loop, newMass is the total mass collected by the
-    // protoplanet, and dustMass and gasMass are the dust and gas components.
-    //do
-    //{
-        protoplanet.previousAddedMass = addedMass;
+    const double addedMass = collectDust(protoplanet.mass, addedDustMass, addedGasMass, protoplanet, availableDust.begin());
 
-        protoplanet.effectLimitScalar = EffectLimitScalar(protoplanet.previousAddedMass);
-        //protoplanet.effectLimitScalar = pow(oldMass / (1.0 + oldMass), (1.0 / 4.0));
-        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.effectLimitScalar);
-        protoplanet.r_inner = effectLimits.first;
-        protoplanet.r_outer = effectLimits.second;
-
-        addedMass = collectDust(protoplanet.previousAddedMass, addedDustMass, addedGasMass, protoplanet, availableDust.begin());
-    //} while (addedMass > 0.0 && abs(addedMass - protoplanet.previousAddedMass) >= 0.0001 * protoplanet.previousAddedMass);
-    //assert(addedMass == 0.0 || addedMass >= protoplanet.previousAddedMass);
-
-    // If any mass wass was consumed, add it to the protoplanet and update the dust lanes.
+    // If any mass wass was added, add it to the protoplanet and update the dust lanes.
     if (addedMass > 0.0)
     {
         protoplanet.mass += addedMass;
         protoplanet.dustMass += addedDustMass;
         protoplanet.gasMass += addedGasMass;
+
+
+        const std::pair<double, double> effectLimits = GetEffectLimits(protoplanet.sma, protoplanet.eccentricity, protoplanet.mass);
+        protoplanet.r_inner = effectLimits.first;
+        protoplanet.r_outer = effectLimits.second;
 
         updateDustLanes(protoplanet);
 
@@ -214,58 +204,11 @@ bool Generator::accreteDust2(Protoplanet& protoplanet)
     }
     else
     {
+        // This protoplanet is no longer collecting dust, so we can skip it in future iterations.
         protoplanet.active = false;
 
         return false;
     }
-
-    /*
-    // If the protoplanet is heavier than the initial seed mass, let's try to turn it into a planet.
-    if (protoplanet.mass > config.protoplanetSeedMass)
-    {
-#ifdef ALLOW_DEBUG_PRINTF
-        if (config.verboseLogging && !availableDust.empty())
-        {
-            printf("Updated dust bands:\n");
-            for (const auto& d : availableDust)
-            {
-                if (d.dustPresent || d.gasPresent)
-                {
-                    const char* whatsLeft = "cleared"; // Shouldn't be seen - empty bands aren't in the dust list.
-                    if (d.dustPresent)
-                    {
-                        if (d.gasPresent)
-                        {
-                            whatsLeft = "dust and gas";
-                        }
-                        else
-                        {
-                            whatsLeft = "dust";
-                        }
-                    }
-                    else if (d.gasPresent)
-                    {
-                        whatsLeft = "gas";
-                    }
-
-                    printf("%7.3lfAU - %7.3lfAU: %s\n",
-                           d.innerEdge, d.outerEdge,
-                           whatsLeft);
-                }
-            }
-        }
-#endif
-
-        ++protoPlanetCount;
-        coalescePlanetisimals(protoplanet);
-    }
-#ifdef ALLOW_DEBUG_PRINTF
-    else if (config.verboseLogging)
-    {
-        printf(" ... No dust collected.  Discarding\n");
-    }
-#endif
-    */
 }
 
 //----------------------------------------------------------------------------
@@ -284,21 +227,23 @@ void Generator::coalescePlanetisimals(const Protoplanet& protoplanet)
         // Difference in semi-major axis
         const double diff = planet->getSemimajorAxis() - protoplanet.sma;
 
+        const double ppEffectLimitScalar = EffectLimitScalar(protoplanet.mass);
+        const double planetEffectLimitScalar = EffectLimitScalar(planet->getMass());
+
         double dist1, dist2;
+        // Planet is more distant than protoplanet
         if (diff > 0.0)
         {
-            dist1 = (protoplanet.sma * (1.0 + protoplanet.eccentricity) * (1.0 + protoplanet.effectLimitScalar)) - protoplanet.sma;
+            dist1 = (protoplanet.sma * (1.0 + protoplanet.eccentricity) * (1.0 + ppEffectLimitScalar)) - protoplanet.sma;
             // x aphelion
-            const double effectLimitScalar = EffectLimitScalar(planet->getMass());
             dist2 = planet->getSemimajorAxis()
-                - (planet->getSemimajorAxis() * (1.0 - planet->getEccentricity()) * (1.0 - effectLimitScalar));
+                - (planet->getSemimajorAxis() * (1.0 - planet->getEccentricity()) * (1.0 - planetEffectLimitScalar));
         }
         else
         {
-            dist1 = protoplanet.sma - (protoplanet.sma * (1.0 - protoplanet.eccentricity) * (1.0 - protoplanet.effectLimitScalar));
+            dist1 = protoplanet.sma - (protoplanet.sma * (1.0 - protoplanet.eccentricity) * (1.0 - ppEffectLimitScalar));
             // x perihelion
-            const double effectLimitScalar = EffectLimitScalar(planet->getMass());
-            dist2 = (planet->getSemimajorAxis() * (1.0 + planet->getEccentricity()) * (1.0 + effectLimitScalar))
+            dist2 = (planet->getSemimajorAxis() * (1.0 + planet->getEccentricity()) * (1.0 + planetEffectLimitScalar))
                 - planet->getSemimajorAxis();
         }
 
@@ -369,8 +314,6 @@ void Generator::coalescePlanetisimals(const Protoplanet& protoplanet)
             newProtoplanet.mass = planet->getMass() + protoplanet.mass;
             newProtoplanet.dustMass = planet->getDustMassComponent() + protoplanet.dustMass;
             newProtoplanet.gasMass = planet->getGasMassComponent() + protoplanet.gasMass;
-            newProtoplanet.previousAddedMass = protoplanet.previousAddedMass;
-            newProtoplanet.effectLimitScalar = EffectLimitScalar(protoplanet.previousAddedMass);
 
 #ifdef ALLOW_DEBUG_PRINTF
             if (config.verboseLogging)
@@ -399,7 +342,7 @@ void Generator::coalescePlanetisimals(const Protoplanet& protoplanet)
 #ifdef ALLOW_DEBUG_PRINTF
     if (config.verboseLogging)
     {
-        printf("... Adding new planet.\n");
+        printf(" ... Adding new planet.\n");
     }
 #endif
     if (planetList.empty() || planetList.front().getSemimajorAxis() > newPlanet.getSemimajorAxis())
@@ -497,7 +440,9 @@ double Generator::collectDust(double lastMass, double& additionalDustMass, doubl
 
     width = width - innerTemp;
 
-    const double area = 4.0 * PI * pow(protoplanet.sma, 2.0) * protoplanet.effectLimitScalar * (1.0 - protoplanet.eccentricity * (outerTemp - innerTemp) / bandWidth);
+    const double effectLimitScalar = EffectLimitScalar(lastMass);
+
+    const double area = 4.0 * PI * pow(protoplanet.sma, 2.0) * effectLimitScalar * (1.0 - protoplanet.eccentricity * (outerTemp - innerTemp) / bandWidth);
 
     const double volume = area * width;
 
@@ -609,7 +554,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
             Protoplanet protoplanet;
             protoplanet.sma = s.semiMajorAxis;
             protoplanet.eccentricity = s.eccentricity;
-            protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
+            protoplanet.mass = protoplanet.dustMass = config.protoplanetSeedMass;
 
             accreteDust(protoplanet);
         }
@@ -635,7 +580,7 @@ void Generator::generate(SolarSystem& system, const Config& config_)
         Protoplanet protoplanet;
         protoplanet.sma = randomUniform(protoplanetZone.first, protoplanetZone.second);
         protoplanet.eccentricity = randomEccentricity();
-        protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
+        protoplanet.mass = protoplanet.dustMass = config.protoplanetSeedMass;
 
         accreteDust(protoplanet);
     }
@@ -734,22 +679,6 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
                 s.eccentricity = randomEccentricity();
             }
         }
-
-        //for (auto& s : config.protoplanetSeeds)
-        //{
-        //    Protoplanet protoplanet;
-        //    protoplanet.sma = s.semiMajorAxis;
-        //    if (s.eccentricity < 0.0f || s.eccentricity > 0.9f)
-        //    {
-        //        protoplanet.eccentricity = randomEccentricity();
-        //    }
-        //    else
-        //    {
-        //        protoplanet.eccentricity = s.eccentricity;
-        //    }
-        //    protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
-        //    protoplanets.emplace_back(protoplanet);
-        //}
     }
     else if (config.generateBodeSeeds)
     {
@@ -770,16 +699,13 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
             {
                 protoplanet.eccentricity = s.eccentricity;
             }
-            protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
+            protoplanet.mass = protoplanet.dustMass = config.protoplanetSeedMass;
             protoplanets.emplace_back(protoplanet);
         }
 #ifdef ALLOW_DEBUG_PRINTF
-        else
+        else if (config.verboseLogging)
         {
-            if (config.verboseLogging)
-            {
-                printf("Discarded protoplanet at SMA %.3lf: outside of protoplanet zone\n", s.semiMajorAxis);
-            }
+            printf("Discarded protoplanet at SMA %.3lf: outside of protoplanet zone\n", s.semiMajorAxis);
         }
 #endif
     }
@@ -789,7 +715,7 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
         Protoplanet protoplanet;
         protoplanet.sma = randomUniform(protoplanetZone.first, protoplanetZone.second);
         protoplanet.eccentricity = randomEccentricity();
-        protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
+        protoplanet.mass = protoplanet.dustMass = config.protoplanetSeedMass;
         protoplanets.emplace_back(protoplanet);
     }
 
@@ -800,7 +726,7 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
 
     // Apply seeds
 #ifdef ALLOW_DEBUG_PRINTF
-    if (/*!protoplanetSeeds.empty() && */config.verboseLogging)
+    if (config.verboseLogging)
     {
         printf("Applying %Iu protoplanet seeds:\n", protoplanets.size());
     }
@@ -810,6 +736,12 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
     uint32_t iteratorCount = 0;
     do
     {
+#ifdef ALLOW_DEBUG_PRINTF
+        if (config.verboseLogging)
+        {
+            printf("Accretion iteration %u:\n", iteratorCount);
+        }
+#endif
         anyAccrued = false;
         uint32_t idx = 0;
         for (auto& protoplanet : protoplanets)
@@ -826,7 +758,7 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
 #ifdef ALLOW_DEBUG_PRINTF
                     if (config.verboseLogging)
                     {
-                        printf("Iteration %4u: protoplanet %3u has stopped accreting.\n", iteratorCount, idx);
+                        printf(" ... protoplanet %3u has stopped accreting.\n", idx);
                     }
 #endif
                 }
@@ -852,28 +784,6 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
         }
     }
 
-    /*for (const auto& s : protoplanetSeeds)
-    {
-        if (s.semiMajorAxis >= protoplanetZone.first && s.semiMajorAxis <= protoplanetZone.second && dustRemains)
-        {
-            Protoplanet protoplanet;
-            protoplanet.sma = s.semiMajorAxis;
-            protoplanet.eccentricity = s.eccentricity;
-            protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
-
-            accreteDust(protoplanet);
-        }
-#ifdef ALLOW_DEBUG_PRINTF
-        else
-        {
-            if (config.verboseLogging)
-            {
-                printf("Discarded protoplanet at SMA %.3lf: outside of protoplanet zone\n", s.semiMajorAxis);
-            }
-        }
-#endif
-    }*/
-
 #ifdef ALLOW_DEBUG_PRINTF
     if (dustRemains && config.verboseLogging)
     {
@@ -887,7 +797,7 @@ void Generator::generate2(SolarSystem& system, const Config& config_)
         Protoplanet protoplanet;
         protoplanet.sma = randomUniform(protoplanetZone.first, protoplanetZone.second);
         protoplanet.eccentricity = randomEccentricity();
-        protoplanet.mass = protoplanet.dustMass = protoplanet.previousAddedMass = config.protoplanetSeedMass;
+        protoplanet.mass = protoplanet.dustMass = config.protoplanetSeedMass;
 
         accreteDust(protoplanet);
     }
