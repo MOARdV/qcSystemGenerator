@@ -91,6 +91,9 @@ char AsciiArtType(PlanetType type)
         case PlanetType::GasGiant:
             return 'O';
 
+        case PlanetType::BrownDwarf:
+            return 'B';
+
         case PlanetType::AsteroidBelt:
             return ':';
             //case PlanetType::Goldilocks:
@@ -392,23 +395,34 @@ int main(int, char**)
 
     Star sun;
     sun.setType(StarClassification::G_V, 2);
-    sun.setName("Bob");
-    sun.evaluate(&gen);
 
     SolarSystem ss;
-    ss.setName("Bob System");
+    ss.setName("Serial");
     ss.add(sun);
 
     Config cfg;
-    cfg.generateStar = true;
+    //cfg.generateStar = true;
     cfg.generateBodeSeeds = true;
-    //cfg.verboseLogging = true;
-    gen.generate(ss, cfg);
+    cfg.verboseLogging = true;
 
-    const bool showSummary = false;
+    const bool showSummary = true;
     const bool showDetails = true;
 
+#if 1
+    gen.generate(ss, cfg);
     ShowResults(ss, gen, showSummary, showDetails);
+#endif
+
+#if 0
+    // not ready for primetime
+    SolarSystem ss2;
+    ss2.setName("Parallel");
+    // Unset the name, so the star will inherit the system name
+    sun.setName(std::string());
+    ss2.add(sun);
+    gen.generate2(ss2, cfg);
+    ShowResults(ss2, gen, showSummary, showDetails);
+#endif
 
     return 0;
 }
