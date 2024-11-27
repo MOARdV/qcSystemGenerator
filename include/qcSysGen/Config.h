@@ -128,6 +128,14 @@ struct Config
     /// @todo Convert to radians for consistency.
     float inclinationStdDev = 1.23f;
 
+    /// @brief The number of protoplanets to generate in Generator::generate2().
+    ///
+    /// These protoplanets are generated in addition to the protoplanets generated when Config::generateBodeSeeds
+    /// is true or Config.protoplanetSeeds is not empty.  If these additional protoplanets are inadequate to
+    /// sweep the neighborhood, then Generator::generate2() falls back to random protoplanets that sweep
+    /// their neighborhood per the Generator::generate().
+    uint32_t protoplanetCount = 20u;
+
     //--- Switches
 
     /// @brief When true, generate planetisimal seeds derived from Blagg's modification of Bode's Law.

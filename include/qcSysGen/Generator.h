@@ -106,6 +106,24 @@ class Generator
     /// @param config_ The Config that configures the generator.
     void generate(SolarSystem& system, const Config& config_);
 
+    /// @brief Generate a random solar system.
+    /// 
+    /// Any existing planets in `system` will be removed.  If Config::generateStar is true,
+    /// the Star will also be replaced.
+    /// 
+    /// After this method has run, the SolarSystem will have been fully evaluated.
+    /// 
+    /// This generator method uses a semi-parallel accretion algorithm.  Instead of each protoplanet
+    /// being fully accreted before the next one protoplanet is evaluated, each of the initial protoplanets
+    /// (those provided in Config::protoplanetSeeds or those created via Config::generateBodeSeeds, as
+    /// well as those added because of Config::protoplanetCount) accrete dust once, and then each one
+    /// accretes again.  This continues until no protoplanets are collecting dust.  At that stage,
+    /// if there is still dust available, the sequential accretion algorithm used in generate() is used
+    /// to sweep the remaining dust.
+    /// @param system The SolarSystem that will contain the results.
+    /// @param config_ The Config that configures the generator.
+    void generate2(SolarSystem& system, const Config& config_);
+
     /// @brief Returns the percentage random variation in density to use generating a planet.
     /// 
     /// This variation allows for a little more variety in planetary sizes and characteristics.
@@ -220,10 +238,10 @@ class Generator
         double outerEdge;
 
         /// @brief Is dust present in this band?
-        bool dustPresent : 1;
+        bool dustPresent;
 
         /// @brief Is gas present in this band?
-        bool gasPresent : 1;
+        bool gasPresent;
 
         /// @brief Initializes a dustband
         /// @param inner Inner edge of the band, in AU.
@@ -256,13 +274,17 @@ class Generator
         double criticalMass; //!< Critical mass for gas retention (gas giant formation), in solar masses.  Derived from sma and e.
         double dustMass; //!< Mass of the dust component of the protoplanet, in solar masses.
         double gasMass; //!< Mass of the gas component of the protoplanet, in solar masses.  "Gas" in this context is hydrogen and helium.
+        double previousAddedMass; //!< Mass that was added during the previous accretion step.
 
         double effectLimitScalar; //!< Reduced mass used and updated in GeneratorState::accreteDust().
         double r_inner; //!< Inner effect limit radius, in AU.
         double r_outer; //!< Outer effect limit radius, in AU.
+        
+        bool active; //!< Is this protoplanet still actively accruing?
 
         Protoplanet() :sma(0.0), eccentricity(0.0f), mass(0.0),
             criticalMass(0.0), dustMass(0.0), gasMass(0.0),
+            previousAddedMass(0.0), active(true),
             effectLimitScalar(0.0), r_inner(0.0), r_outer(0.0)
         { }
     };
@@ -297,11 +319,15 @@ class Generator
     // coalescePlanetisimals() to attempt to convert the protoplanet into a planet.
     void accreteDust(Protoplanet& protoplanet);
 
+    // Accrete dust, single step.  This implementation only collects dust once, instead
+    // of growing the protoplanet until it's swept its neighborhood.  Used in generate2().
+    bool accreteDust2(Protoplanet& protoplanet);
+
     // Attempt to convert the protoplanet into a planet.  First, each existing planet is tested
     // to see if the protoplanet may have collided with it.  If not, a new planet is formed.
     // If there was a collision, a new protoplanet is formed using post-colliision mass and
     // orbital characteristics, and it goes through collectDust() to sweep its neighborhood.
-    void coalescePlanetisimals(Protoplanet& protoplanet);
+    void coalescePlanetisimals(const Protoplanet& protoplanet);
 
     /// @brief Execute one iteration to collect dust from the dustband.  Recurse to the next dust band to continue collecting.
     /// @param lastMass The amount of dust added in the previous step.
