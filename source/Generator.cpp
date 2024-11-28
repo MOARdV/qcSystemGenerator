@@ -981,10 +981,10 @@ void Generator::updateDustLanes(const Protoplanet& protoplanet)
     {
         if (currentBand->innerEdge < protoplanet.r_inner && currentBand->outerEdge > protoplanet.r_outer)
         {
-            // The dustband covers the entire region, so we must split it in three
+            // This dustband contains the entire swept region, so we must split it in three
             // pieces (inner band, outer band, and the band that covers the inner to outer
             // radius).
-            Dust middleBand(protoplanet.r_inner, protoplanet.r_outer, false, (currentBand->gasPresent) ? gasRemains : false);
+            Dust middleBand(protoplanet.r_inner, protoplanet.r_outer, false, currentBand->gasPresent && gasRemains);
             Dust outerBand(protoplanet.r_outer, currentBand->outerEdge, currentBand->dustPresent, currentBand->gasPresent);
 
             //currentBand->innerEdge is unchanged.
@@ -1000,28 +1000,28 @@ void Generator::updateDustLanes(const Protoplanet& protoplanet)
             ++currentBand;
             // now points at the outer band.
         }
-        else if (currentBand->innerEdge < protoplanet.r_outer && currentBand->outerEdge > protoplanet.r_outer)
+        else if (currentBand->innerEdge < protoplanet.r_outer && currentBand->outerEdge >= protoplanet.r_outer)
         {
-            // This dustband straddles the outer limit of the region we touched.  We split the
-            // region and add the new region after the current dustband.
+            // This dustband straddles the outer limit of the swept region.  We split the
+            // dustband and add the new dustband after the current dustband.
             Dust newBand(protoplanet.r_outer, currentBand->outerEdge, currentBand->dustPresent, currentBand->gasPresent);
 
             //currentBand->innerEdge is unchanged
             currentBand->outerEdge = protoplanet.r_outer;
             currentBand->dustPresent = false;
-            currentBand->gasPresent = (currentBand->gasPresent) ? gasRemains : false;
+            currentBand->gasPresent = currentBand->gasPresent && gasRemains;
 
             availableDust.emplace_after(currentBand, newBand);
             ++currentBand;
         }
-        else if (currentBand->innerEdge < protoplanet.r_inner && currentBand->outerEdge > protoplanet.r_inner)
+        else if (currentBand->innerEdge <= protoplanet.r_inner && currentBand->outerEdge > protoplanet.r_inner)
         {
-            // This dustband straddles the inner limit of the region we touched.  We split currentBand
+            // This dustband straddles the inner limit of the region we swept.  We split currentBand
             // into two chunks.
 
             // New band covers the distance from r_inner to the original dustband's outer edge.
             // The old dustband now covers the distance up to r_inner.
-            Dust newBand(protoplanet.r_inner, currentBand->outerEdge, false, (currentBand->gasPresent) ? (gasRemains) : false);
+            Dust newBand(protoplanet.r_inner, currentBand->outerEdge, false, currentBand->gasPresent && gasRemains);
 
             //currentBand->innerEdge is unchanged.
             currentBand->outerEdge = protoplanet.r_inner;
@@ -1033,7 +1033,7 @@ void Generator::updateDustLanes(const Protoplanet& protoplanet)
         }
         else if (currentBand->innerEdge >= protoplanet.r_inner && currentBand->outerEdge <= protoplanet.r_outer)
         {
-            // This node is contained entirely within the bounds.  Update its contents
+            // This dustband is contained entirely within the swept bounds.  Update its contents.
             if (currentBand->gasPresent)
             {
                 currentBand->gasPresent = gasRemains;
