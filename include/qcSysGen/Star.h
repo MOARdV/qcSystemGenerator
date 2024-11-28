@@ -166,6 +166,16 @@ class Star
     /// @return Solar radius of the star.
     double getSolarRadius() const { return radiusSolar; }
 
+    /// @brief Approximate sphere of influence of the star.
+    /// 
+    /// This formula uses the basic SoI computation with the following assumptions:
+    /// The star's orbit around the galactic center is approximately the same as our Sun's,
+    /// 25,000 light-years, and the galactic stellar disk has a mass of about 2.32e+11 solar
+    /// masses.  Both values from https://academic.oup.com/mnras/article/496/4/4287/5850389?login=false
+    /// section 6.1.2.
+    /// @return Radius of the star's sphere of influence, in light-years.
+    double getSphereOfInfluence() const { return 25000.0 * pow(massSolar / 2.32e+11, 0.4); }
+
     /// @brief Get the star's classification and subtype.
     /// @return The star's type.
     StarType_t&& getStarType() const { return std::make_pair(type, subtype); }

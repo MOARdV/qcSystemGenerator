@@ -679,6 +679,8 @@ void Planet::evaluate(Generator& generator, const Star& star)
 
     orbitalDominance = OrbitalDominance(totalMass, semimajorAxis);
 
+    sphereOfInfluence = semimajorAxis * pow(totalMass / star.getMass(), 0.4);
+
     axialTilt = generator.randomTilt(semimajorAxis, EarthAxialTilt);
 
     exosphereTemperature = static_cast<float>(EarthExosphereTemperature / (evaluationState.ecosphereRatio * evaluationState.ecosphereRatio));

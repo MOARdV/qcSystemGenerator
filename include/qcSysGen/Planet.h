@@ -178,6 +178,13 @@ class Planet
     /// @return SMA of the orbit, in AU
     double getSemimajorAxis() const { return semimajorAxis; }
 
+    /// @brief The sphere of influence of the planet.
+    /// 
+    /// Beyond this distance, a body has effectively escaped the gravitational influence of this
+    /// planet.
+    /// @return The sphere of influence, in AU.
+    double getSphereOfInfluence() const { return sphereOfInfluence; }
+
     /// @brief Returns the surface acceleration of gravity in G's.
     /// @return Acceleration in G's.
     double getSurfaceGravity() const { return surfaceAcceleration * AccelerationInGees; }
@@ -285,6 +292,7 @@ class Planet
     float escapeVelocity; //!< Escape velocity, m/s
     float surfaceAcceleration; //!< Surface acceleration from gravity, m/(s^2).
     float density; //!< Density, in g/cc.
+    double sphereOfInfluence; //!< Planet's SoI, in AU.
 
     // Atmosphere
     float rmsVelocity; //!< RMS velocity of molecular nitrogen, in m/s.
