@@ -178,6 +178,9 @@ void SpewPlanet(const Planet& pl, int planetOrdinal)
         planetInfo.append("\tDensity: ").append(buffer);
         puts(planetInfo.c_str());
         planetInfo.clear();
+        
+        sprintf_s(buffer, "\tSoI: %.0lfkm", pl.getSphereOfInfluence() * KmPerAu);
+        puts(buffer);
 
         if (!pl.isGaseous())
         {
