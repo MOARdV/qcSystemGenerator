@@ -88,6 +88,10 @@ The library and example application are both released under the MIT license.
 * Pollard 1979: "The prevalence of Earthlike Planets", W. G. Pollard, Amer. Sci., Vol 67, pp. 653-659, 1979
 * Zeigler 1999: "GURPS Traveller First In", Jon F. Zeigler, Steve Jackson Games, 1999
 
+### TBD
+
+* Pierrehumbert 2011: "Infrared radiation and planetary temperature", R. T. Pierrehumbert, Physics Today. American Institute of Physics. pp. 33–38, January 2011
+
 ## PAST README AND CREDITS
 
 The following is the chain of readmes and credits included with stargen, as found at
